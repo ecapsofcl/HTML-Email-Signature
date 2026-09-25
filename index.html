@@ -311,7 +311,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycby8fqctEcU9_kbPzxaigs6lvo4V1Nr_JbimVajVdi6bN2T5YhSmNEAZZZvcJ7ggdFKlYA/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbxGQKOjZV5ukOuAN5K4MkvOp8D5TNFYWazso_HN3XWMoSv5389K-y3s2ES0zol4vwT1Rw/exec" };
 
 const DEMO = {
   settings: {
@@ -372,7 +372,7 @@ async function api(action, payload) {
   if (DEMO_MODE) throw new Error("Demo mode: connect the Google Sheet to save, upload or send.");
   const json = JSON.stringify(payload || {});
   let d;
-  if (json.length <= 50000) d = await post(Object.assign({ key: KEY, action }, payload || {}));
+  if (json.length <= 50000) d = await post(Object.assign({}, payload || {}, { key: KEY, action }));
   else {   // Google drops very large requests, so send big uploads in ~50 KB pieces
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36), size = 45000, n = Math.ceil(json.length / size);
     for (let i = 0; i < n; i++) {
@@ -524,10 +524,10 @@ async function ensureIconSet(s) {
   if (!usesCustomIcons(s) || DEMO_MODE) return;
   if (!s.asset_base_url) throw new Error("Custom icons need GitHub image hosting. Add PAGES_URL and the GitHub settings in Apps Script (see README).");
   const key = S.iconSetKey(s);
-  const ex = await api("iconSetExists", { key });
+  const ex = await api("iconSetExists", { setKey: key });
   if (ex.exists) return;
   const icons = await iconSet(s);
-  await api("uploadIconSet", { key, files: Object.entries(icons).map(([name, u]) => ({ name, base64: u.split(",")[1] })) });
+  await api("uploadIconSet", { setKey: key, files: Object.entries(icons).map(([name, u]) => ({ name, base64: u.split(",")[1] })) });
 }
 
 /* ---------- sign in ---------- */
