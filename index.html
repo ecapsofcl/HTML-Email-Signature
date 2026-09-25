@@ -311,7 +311,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbzRYbLEGv-l7IFIcIKy1EM1gY992wzKhy4faZ4Iwz5-bUgsH9hGSFm1ytX3vHnpoBhvcw/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycby8fqctEcU9_kbPzxaigs6lvo4V1Nr_JbimVajVdi6bN2T5YhSmNEAZZZvcJ7ggdFKlYA/exec" };
 
 const DEMO = {
   settings: {
@@ -355,12 +355,36 @@ function busy(btn, on) { if (btn) btn.disabled = on; }
 const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
 const readFile = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
 
+async function post(body) {
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {           // one automatic retry for flaky networks / empty requests
+    try {
+      const r = await fetch(CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+      const text = await r.text();
+      let d; try { d = JSON.parse(text); } catch (x) { throw new Error("The server sent an unexpected reply. Check the Apps Script deployment is set to Anyone."); }
+      if (d.empty && attempt === 0) { lastErr = new Error(d.message); continue; }
+      return d;
+    } catch (e) { lastErr = e; if (attempt === 0) await new Promise(r => setTimeout(r, 800)); }
+  }
+  throw lastErr;
+}
 async function api(action, payload) {
   if (DEMO_MODE) throw new Error("Demo mode: connect the Google Sheet to save, upload or send.");
-  const r = await fetch(CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(Object.assign({ key: KEY, action }, payload || {})) });
-  const d = await r.json();
-  if (d.auth === false) { signOut(); throw new Error(d.message); }
+  const json = JSON.stringify(payload || {});
+  let d;
+  if (json.length <= 50000) d = await post(Object.assign({ key: KEY, action }, payload || {}));
+  else {   // Google drops very large requests, so send big uploads in ~50 KB pieces
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36), size = 45000, n = Math.ceil(json.length / size);
+    for (let i = 0; i < n; i++) {
+      const c = await post({ key: KEY, action: "putChunk", id, i, data: json.slice(i * size, (i + 1) * size) });
+      if (!c.ok) { d = c; break; }
+    }
+    if (!d) d = await post({ key: KEY, action, chunkId: id, chunks: n });
+  }
+  if (d.auth === false) {
+    if (action === "init") { signOut(); throw new Error(d.message); }
+    throw new Error("The server didn't accept the admin key for this action. Your work is still here; please try again, or sign out and back in.");
+  }
   if (!d.ok) throw new Error(d.message || "Request failed");
   return d;
 }
@@ -522,7 +546,9 @@ async function login(key) {
 }
 async function refresh() {
   if (DEMO_MODE) return;
-  const d = await api("init"); DATA = d; statusLine(d);
+  const d = await post({ key: KEY, action: "init" });
+  if (!d.ok) throw new Error(d.auth === false ? "The admin key was not accepted. Please sign out and sign in again." : (d.message || "Couldn't reload data"));
+  DATA = d; statusLine(d);
   fillBranchSelects(); renderPeople(); renderFieldInfo(); renderPickers();
 }
 function signOut() { KEY = ""; store("sigKey", null); location.reload(); }
