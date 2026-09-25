@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eCAPS Signature Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --nav:#0f2744; --nav-2:#18395f; --nav-ink:#b9c7da; --brand:#477ccc; --brand-d:#2f5fa8; --brand-soft:#eaf1fb;
+    --bg:#eef1f5; --panel:#ffffff; --line:#dbe1ea; --line-2:#e9edf3; --ink:#16233a; --muted:#5d6b82;
+    --ok:#1e8a5a; --err:#b8322a; --warn:#8a5a00; --r:6px;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font-family:"IBM Plex Sans","Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.45; color:var(--ink); background:var(--bg); }
+  button, input, select, textarea { font:inherit; }
+  .hidden { display:none !important; }
+
+  /* ---------- shell ---------- */
+  .app { display:grid; grid-template-columns:212px minmax(0,1fr); min-height:100vh; }
+  .side { background:var(--nav); color:var(--nav-ink); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .brandbox { padding:16px 16px 14px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .brandbox .chip { background:#fff; border-radius:var(--r); padding:6px 10px; display:inline-flex; }
+  .brandbox .chip img { height:26px; width:auto; display:block; }
+  .brandbox .app-name { color:#fff; font-weight:600; font-size:14px; margin-top:10px; }
+  .brandbox .app-sub { font-size:12px; }
+  .navlist { padding:10px 8px; display:flex; flex-direction:column; gap:2px; }
+  .navlist button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0; color:var(--nav-ink); padding:9px 10px; border-radius:var(--r); cursor:pointer; font-size:14px; }
+  .navlist button svg { width:17px; height:17px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .navlist button:hover { background:rgba(255,255,255,.06); color:#fff; }
+  .navlist button[aria-current="page"] { background:var(--nav-2); color:#fff; box-shadow:inset 3px 0 0 var(--brand); }
+  .side-foot { margin-top:auto; padding:12px 16px; border-top:1px solid rgba(255,255,255,.08); font-size:12px; }
+  .side-foot .stat { color:#fff; font-weight:600; }
+  .side-foot button { margin-top:10px; background:none; border:1px solid rgba(255,255,255,.2); color:var(--nav-ink); border-radius:var(--r); padding:5px 10px; cursor:pointer; font-size:12px; }
+  .side-foot button:hover { color:#fff; border-color:rgba(255,255,255,.4); }
+
+  main { min-width:0; display:flex; flex-direction:column; }
+  .bar { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; padding:10px 18px; min-height:54px; }
+  .bar h1 { font-size:16px; font-weight:600; margin:0; }
+  .bar .sub { color:var(--muted); font-size:13px; }
+  .bar .grow { flex:1; }
+  .page { padding:14px 18px 24px; }
+  @media (max-width:900px) {
+    .app { grid-template-columns:1fr; }
+    .side { position:static; height:auto; }
+    .navlist { flex-direction:row; flex-wrap:wrap; }
+    .navlist button { width:auto; }
+    .side-foot { display:none; }
+  }
+
+  /* ---------- controls ---------- */
+  .btn { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:var(--r); padding:7px 13px; font-size:13.5px; font-weight:500; cursor:pointer; white-space:nowrap; }
+  .btn:hover { border-color:var(--brand); }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn.primary:hover { background:var(--brand-d); border-color:var(--brand-d); }
+  .btn.sm { padding:4px 9px; font-size:12.5px; }
+  .btn:disabled { opacity:.55; cursor:progress; }
+  label.lb { display:block; font-size:12px; font-weight:600; color:var(--muted); margin:0 0 3px; }
+  input[type=text], input[type=email], input[type=tel], input[type=url], input[type=number], input[type=password], select, textarea {
+    width:100%; height:34px; padding:6px 10px; border:1px solid var(--line); border-radius:var(--r); background:#fff; color:var(--ink); font-size:13.5px; }
+  textarea { height:auto; min-height:120px; resize:vertical; line-height:1.45; }
+  input::placeholder, textarea::placeholder { color:#9aa5b6; }
+  input:focus, select:focus, textarea:focus, .btn:focus-visible, button:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+  .hint { font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
+  .grid2 .wide { grid-column:1 / -1; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } }
+  .inrow { display:flex; gap:6px; }
+  .inrow > input { flex:1; min-width:0; }
+  .cpick { width:44px; height:34px; padding:3px; border:1px solid var(--line); border-radius:var(--r); background:#fff; cursor:pointer; flex:none; }
+  .cpick::-webkit-color-swatch-wrapper { padding:0; } .cpick::-webkit-color-swatch { border:0; border-radius:4px; }
+  .cpick::-moz-color-swatch { border:0; border-radius:4px; }
+  .xbtn { flex:none; width:34px; height:34px; border:1px solid var(--line); border-radius:var(--r); background:#fff; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; }
+  .xbtn:hover { color:var(--err); border-color:var(--err); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
+  .chips button { border:1px solid var(--line); background:#fff; border-radius:14px; padding:3px 11px; font-size:12.5px; color:var(--muted); cursor:pointer; }
+  .chips button[aria-pressed="true"] { background:var(--nav); border-color:var(--nav); color:#fff; }
+  .tag { display:inline-block; font-size:10.5px; font-weight:600; color:var(--brand-d); background:var(--brand-soft); border-radius:4px; padding:0 5px; margin-left:6px; vertical-align:1px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+  .phead { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line-2); }
+  .phead h2 { font-size:14px; font-weight:600; margin:0; }
+  .phead .grow { flex:1; }
+  .pbody { padding:14px; }
+  .toggle { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f6f8fb; border:1px solid var(--line-2); border-radius:var(--r); margin-bottom:12px; font-weight:500; cursor:pointer; }
+  .check { display:flex; align-items:center; gap:8px; margin:6px 0; cursor:pointer; }
+  .msg { font-size:13px; min-height:18px; }
+  .msg.ok { color:var(--ok); } .msg.err { color:var(--err); }
+  .note { background:var(--brand-soft); color:var(--brand-d); border-radius:var(--r); padding:8px 10px; font-size:12.5px; margin-top:10px; }
+  .note.warn { background:#fff5dc; color:var(--warn); }
+  .sectitle { font-size:12px; font-weight:700; color:var(--muted); text-transform:none; margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--line-2); }
+
+  /* ---------- create page ---------- */
+  .create { display:grid; grid-template-columns:170px minmax(340px,1fr) minmax(460px,1.15fr); gap:14px; align-items:start; }
+  .rail { position:sticky; top:68px; display:flex; flex-direction:column; gap:2px; }
+  .rail button { display:flex; align-items:center; justify-content:space-between; gap:6px; text-align:left; background:none; border:0; border-radius:var(--r); padding:8px 10px; color:var(--muted); cursor:pointer; font-size:13.5px; }
+  .rail button:hover { background:#e3e8ef; color:var(--ink); }
+  .rail button[aria-selected="true"] { background:var(--panel); color:var(--ink); font-weight:600; box-shadow:0 0 0 1px var(--line); }
+  .rail .dot { width:7px; height:7px; border-radius:4px; background:#e0a100; visibility:hidden; }
+  .rail button.has-custom .dot { visibility:visible; }
+  .rail .who { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; }
+  .rail .who b { display:block; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail .who span { font-size:12px; color:var(--muted); }
+  .previewcol { position:sticky; top:68px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+  .seg button { border:0; background:#fff; padding:4px 10px; font-size:12.5px; cursor:pointer; color:var(--muted); }
+  .seg button[aria-pressed="true"] { background:var(--brand-soft); color:var(--brand-d); font-weight:600; }
+  .mailframe { background:#f6f8fb; padding:12px; border-radius:0 0 8px 8px; }
+  .mailcard { background:#fff; border:1px solid var(--line-2); border-radius:6px; margin:0 auto; overflow:hidden; transition:max-width .2s; }
+  .mailmeta { border-bottom:1px solid var(--line-2); padding:8px 12px; font-size:12px; color:var(--muted); display:grid; grid-template-columns:52px 1fr; gap:2px 6px; }
+  .mailmeta b { color:var(--ink); font-weight:500; }
+  #previewFrame { display:block; width:100%; border:0; height:300px; background:#fff; }
+  @media (max-width:1320px) { .create { grid-template-columns:150px minmax(0,1fr); } .previewcol { grid-column:1 / -1; position:static; } }
+  @media (max-width:760px) { .create { grid-template-columns:1fr; } .rail { position:static; flex-direction:row; flex-wrap:wrap; } .rail .who { width:100%; } }
+
+  .templates { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .tpl { position:relative; margin:0; }
+  .tpl > input { position:absolute; opacity:0; }
+  .tpl > span { display:block; border:1px solid var(--line); border-radius:var(--r); padding:6px; text-align:center; font-size:12px; cursor:pointer; background:#fff; }
+  .tpl > input:checked + span { border-color:var(--brand); box-shadow:0 0 0 1px var(--brand); color:var(--brand-d); font-weight:600; }
+  .tpl > input:focus-visible + span { outline:2px solid var(--brand); }
+  .thumb { position:relative; height:58px; overflow:hidden; border-radius:4px; margin-bottom:4px; pointer-events:none; text-align:left; background:#fff; }
+  .thumb > div { position:absolute; top:4px; left:4px; width:480px; transform:scale(.23); transform-origin:top left; }
+  .iconstrip { display:flex; flex-wrap:wrap; gap:6px; padding:10px; background:#f6f8fb; border:1px solid var(--line-2); border-radius:var(--r); min-height:44px; align-items:center; }
+  .iconstrip img { width:26px; height:26px; display:block; }
+
+  /* ---------- people ---------- */
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:end; padding:12px 14px; border-bottom:1px solid var(--line-2); }
+  .toolbar > div { flex:1 1 180px; }
+  table.list { width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.list th { text-align:left; font-weight:600; font-size:12px; color:var(--muted); background:#f6f8fb; border-bottom:1px solid var(--line); padding:8px 12px; position:sticky; top:54px; }
+  table.list td { border-bottom:1px solid var(--line-2); padding:8px 12px; vertical-align:middle; }
+  table.list tr:hover td { background:#fafbfd; }
+  table.list tr.inactive td { color:#9aa3b2; }
+  .sub { color:var(--muted); font-size:12.5px; }
+  .pill { display:inline-block; font-size:11.5px; padding:1px 8px; border-radius:10px; background:#eef1f5; color:var(--muted); }
+  .pill.ok { background:#e5f4ec; color:var(--ok); }
+  .tablewrap { overflow-x:auto; }
+
+  /* ---------- common fields ---------- */
+  .two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start; }
+  @media (max-width:980px) { .two { grid-template-columns:1fr; } }
+  .pick { border:1px solid var(--line); border-radius:var(--r); max-height:230px; overflow:auto; padding:4px 10px; margin-top:6px; }
+  .current { font-size:12.5px; background:#f6f8fb; border:1px solid var(--line-2); border-radius:var(--r); padding:7px 10px; word-break:break-all; max-height:110px; overflow:auto; }
+  .ovr { font-size:12.5px; margin:6px 0 0; padding-left:18px; color:var(--muted); }
+  .scope { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .scope label { border:1px solid var(--line); border-radius:var(--r); padding:8px; text-align:center; cursor:pointer; font-weight:500; }
+  .scope input { position:absolute; opacity:0; }
+  .scope label:has(input:checked) { border-color:var(--brand); background:var(--brand-soft); color:var(--brand-d); }
+
+  /* ---------- login ---------- */
+  .login { min-height:100vh; display:grid; place-items:center; background:linear-gradient(160deg,var(--nav) 0%, #1d4a7e 100%); padding:20px; }
+  .login .card { width:100%; max-width:380px; background:#fff; border-radius:10px; padding:22px; }
+  .login .chip img { height:30px; }
+  .login h1 { font-size:18px; margin:14px 0 2px; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login" id="login">
+  <div class="card">
+    <div class="chip"><img id="loginLogo" src="https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png" alt="eCAPS"></div>
+    <h1>Signature Manager</h1>
+    <div class="sub">Sign in with the admin key to manage email signatures.</div>
+    <label class="lb" for="keyInput" style="margin-top:16px">Admin key</label>
+    <input type="password" id="keyInput" autocomplete="current-password">
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button type="button" class="btn primary" id="btnLogin">Sign in</button>
+      <span class="msg err" id="loginMsg" role="alert"></span>
+    </div>
+    <div class="note warn hidden" id="notConfigured">Not connected to Google Sheets yet. Set <b>CONFIG.API_URL</b> in index.html.
+      <div style="margin-top:8px"><button type="button" class="btn sm" id="btnDemo">Open demo (nothing is saved)</button></div></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app hidden" id="app">
+  <aside class="side">
+    <div class="brandbox">
+      <div class="chip"><img id="brandLogo" src="https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png" alt="eCAPS"></div>
+      <div class="app-name">Signature Manager</div>
+      <div class="app-sub">Email signatures for all branches</div>
+    </div>
+    <nav class="navlist" aria-label="Main">
+      <button type="button" data-page="create" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Create signature</button>
+      <button type="button" data-page="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.8a3.3 3.3 0 010 6.4M18 14.8c2 .7 3.2 2.4 3.6 5.2"/></svg>People</button>
+      <button type="button" data-page="fields"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Bulk updates</button>
+    </nav>
+    <div class="side-foot">
+      <div id="sideStat" class="stat"></div>
+      <div id="sideQuota"></div>
+      <button type="button" id="btnSignOut">Sign out</button>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ===== CREATE ===== -->
+    <section id="page-create">
+      <div class="bar">
+        <div><h1 id="formTitle">New signature</h1><div class="sub" id="editInfo">Fill in the details, then save and email it to the person.</div></div>
+        <div class="grow"></div>
+        <span class="msg" id="createMsg" role="status"></span>
+        <button type="button" class="btn" id="btnNew">New</button>
+        <button type="button" class="btn" id="btnSaveOnly">Save</button>
+        <button type="button" class="btn primary" id="btnSend">Save and email</button>
+      </div>
+      <div class="page">
+        <div class="create">
+          <div class="rail" id="rail" role="tablist" aria-label="Signature sections">
+            <div class="who"><b id="whoName">New person</b><span id="whoBranch">No branch selected</span></div>
+          </div>
+          <div class="panel">
+            <div class="phead"><h2 id="paneTitle">Details</h2></div>
+            <div class="pbody" id="panes"></div>
+          </div>
+          <div class="previewcol">
+            <div class="panel">
+              <div class="phead">
+                <h2>Live preview</h2><div class="grow"></div>
+                <div class="seg" role="group" aria-label="Preview width">
+                  <button type="button" data-w="desktop" aria-pressed="true">Desktop</button>
+                  <button type="button" data-w="mobile" aria-pressed="false">Mobile</button>
+                </div>
+                <button type="button" class="btn sm" id="btnTest">Send test email</button>
+              </div>
+              <div class="mailframe">
+                <div class="mailcard" id="mailcard">
+                  <div class="mailmeta"><span>From</span><b id="metaFrom">Full name</b><span>Subject</span><b>Project update</b></div>
+                  <iframe id="previewFrame" title="Signature preview"></iframe>
+                </div>
+              </div>
+              <div id="ovrNote" class="note hidden" style="margin:0 12px 12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PEOPLE ===== -->
+    <section id="page-people" class="hidden">
+      <div class="bar"><div><h1>People</h1><div class="sub">Everyone with a signature, grouped by branch.</div></div><div class="grow"></div>
+        <span class="msg" id="peopleMsg" role="status"></span>
+        <button type="button" class="btn" id="btnResendShown">Email everyone listed</button></div>
+      <div class="page">
+        <div class="panel">
+          <div class="toolbar">
+            <div><label class="lb" for="pSearch">Search</label><input type="text" id="pSearch" placeholder="Name, email or job title"></div>
+            <div><label class="lb" for="pBranch">Branch</label><select id="pBranch"></select></div>
+          </div>
+          <div class="tablewrap"><table class="list">
+            <thead><tr><th>Name</th><th>Branch</th><th>Email</th><th>Layout</th><th>Last emailed</th><th></th></tr></thead>
+            <tbody id="peopleBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== BULK UPDATES ===== -->
+    <section id="page-fields" class="hidden">
+      <div class="bar"><div><h1>Bulk updates</h1><div class="sub">Change a banner, logo, colour or any common field for one person, a branch or everyone.</div></div><div class="grow"></div>
+        <span class="msg" id="fieldsMsg" role="status"></span>
+        <button type="button" class="btn primary" id="btnApply">Apply update</button></div>
+      <div class="page">
+        <div class="two">
+          <div class="panel"><div class="phead"><h2>1. What to change</h2></div><div class="pbody">
+            <label class="lb" for="fField">Field</label><select id="fField"></select>
+            <label class="lb" style="margin-top:10px">Current general value</label><div class="current" id="fCurrent"></div>
+            <div id="fOverrides"></div>
+            <label class="lb" for="fv" style="margin-top:10px">New value</label><div id="fValueWrap"></div>
+            <div class="hint" id="fValueHint"></div>
+          </div></div>
+          <div class="panel"><div class="phead"><h2>2. Who gets it</h2></div><div class="pbody">
+            <div class="scope">
+              <label><input type="radio" name="scope" value="all" checked> Everyone</label>
+              <label><input type="radio" name="scope" value="branch"> Branches</label>
+              <label><input type="radio" name="scope" value="person"> People</label>
+            </div>
+            <div id="scopeBranch" class="hidden"><div class="pick" id="branchPick"></div></div>
+            <div id="scopePerson" class="hidden"><input type="text" id="personSearch" placeholder="Filter people" style="margin-top:8px"><div class="pick" id="personPick"></div></div>
+            <label class="check" id="overwriteWrap" style="margin-top:12px"><input type="checkbox" id="fOverwrite" checked> <span id="overwriteLabel">Also replace values set for specific branches or people</span></label>
+            <label class="check"><input type="checkbox" id="fNotify" checked> Email the updated signature to everyone affected</label>
+            <div class="hint">Signatures are rebuilt either way. Download links stay the same.</div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Details section: personal fields (moved into the Details pane at start-up) -->
+<template id="personalTpl">
+  <div class="grid2">
+    <div class="wide"><label class="lb" for="f_branch">Branch <span class="sub" style="font-weight:400">(for grouping only, not shown in the signature)</span></label>
+      <div class="inrow"><select id="f_branch"></select><input type="text" id="f_newBranch" class="hidden" placeholder="New branch name"></div></div>
+    <div><label class="lb" for="f_name">Name</label><input type="text" id="f_name" placeholder="Ritika Deshmukh"></div>
+    <div><label class="lb" for="f_designation">Job title</label><input type="text" id="f_designation" placeholder="Business Development Manager"></div>
+    <div><label class="lb" for="f_email">Email</label><input type="email" id="f_email" placeholder="name@caps.in"></div>
+    <div><label class="lb" for="f_mobile">Mobile</label><input type="tel" id="f_mobile" placeholder="+91-98765 43210"></div>
+    <div><label class="lb" for="f_office">Direct line</label><input type="tel" id="f_office" placeholder="Optional"></div>
+    <div><label class="lb" for="f_photo">Photo</label><div class="inrow"><input type="url" id="f_photo" placeholder="For the Photo layout"><button type="button" class="btn sm" data-upload="f_photo">Upload</button></div></div>
+  </div>
+  <div class="sectitle">Company details <span class="sub" style="font-weight:400">— grey text is the general value; type only to change it for this person</span></div>
+</template>
+
+<script src="templates.js"></script>
+<script src="icons.js"></script>
+<script>
+/* ============ CONFIG ============
+   Paste your Apps Script web app URL (ends with /exec). */
+const CONFIG = { API_URL: "" };
+
+const DEMO = {
+  settings: {
+    company_name: "eCAPS Computers India Pvt Ltd",
+    logo_url: "https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png",
+    website: "https://www.caps.in", office_phone: "+91-422-2205100",
+    office_locations: "Coimbatore, Mumbai, Bangalore, Chennai, Hyderabad, Cochin, Madurai, Delhi, Kolkata, Vijayawada",
+    banner_url: "https://htmlsigs.s3.amazonaws.com/banners/files/000/260/067/medium/New_VER1_Email_Signature_Banner_2024_450X200PIX.jpg#wh=450x200",
+    banner_link: "https://www.caps.in", banner_width: "450",
+    twitter: "https://htmlsig.com/t/8d02279269d59c26", facebook: "https://htmlsig.com/t/03a3de2e79429845",
+    linkedin: "https://htmlsig.com/t/7e6f9bc48f2ebaac", instagram: "https://htmlsig.com/t/831da3fb8f0b2836",
+    font_family: "Helvetica, Arial, sans-serif", font_size: "normal", brand_color: "#477ccc", text_color: "#212121",
+    secondary_color: "#6b6b6b", link_color: "#477ccc", separator: "/", phone_labels: "text",
+    icon_style: "official", icon_shape: "circle", icon_color_mode: "single", icon_bg: "#477ccc", icon_fg: "#ffffff", icon_size: "20", icon_gap: "6",
+    badge_height: "40", asset_base_url: "",
+    disclaimer: "This e-mail message may contain confidential or legally privileged information and is intended only for the use of the intended recipient(s). Any unauthorized disclosure, dissemination, distribution, copying or the taking of any action in reliance on the information herein is prohibited."
+  },
+  overrides: [], branches: ["Coimbatore"],
+  people: [{ name: "Ritika Deshmukh", designation: "Business Development Manager", email: "ritika@caps.in", mobile: "+91-99527 43311",
+             office: "", photo: "", template: "classic", banner: "Yes", social: "Yes", disclaimer: "Yes", extras: "Yes", badges: "Yes",
+             status: "Active", branch: "Coimbatore", link: "", lastSent: "" }],
+  emailQuota: 100
+};
+
+const $ = id => document.getElementById(id);
+const S = SigTemplates, esc = S.esc, FIELDS = S.FIELDS, TABS = S.TABS, TOGGLES = S.TOGGLES;
+const PERSONAL = ["name", "designation", "email", "mobile", "office", "photo"];
+const low = x => String(x || "").trim().toLowerCase();
+const hex6 = v => { v = String(v || "").trim(); if (/^#[0-9a-f]{3}$/i.test(v)) v = "#" + v.slice(1).split("").map(x => x + x).join(""); return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : "#477ccc"; };
+const isHex = v => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v || "").trim());
+let KEY = "", DEMO_MODE = false, DATA = { settings: {}, overrides: [], branches: [], people: [] }, editing = null;
+let previewWidth = "desktop";
+const localImages = {};   // uploaded URL -> data URL, so previews work before GitHub Pages publishes the file
+
+/* ---------- helpers ---------- */
+function say(id, t, kind) { const m = $(id); m.textContent = t; m.className = "msg " + (kind || ""); if (kind === "ok") { clearTimeout(say[id]); say[id] = setTimeout(() => { if (m.textContent === t) m.textContent = ""; }, 6000); } }
+function fmtDate(v) { if (!v) return "Never"; const d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }); }
+function store(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+function recall(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function busy(btn, on) { if (btn) btn.disabled = on; }
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => res(i); i.onerror = rej; i.src = src; });
+const readFile = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+
+async function api(action, payload) {
+  if (DEMO_MODE) throw new Error("Demo mode: connect the Google Sheet to save, upload or send.");
+  const r = await fetch(CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ key: KEY, action }, payload || {})) });
+  const d = await r.json();
+  if (d.auth === false) { signOut(); throw new Error(d.message); }
+  if (!d.ok) throw new Error(d.message || "Request failed");
+  return d;
+}
+
+/* ---------- field controls ---------- */
+function fieldControl(f, id, placeholder) {
+  const t = f.type || "text";
+  if (t === "select") {
+    const inh = placeholder === undefined ? null : (f.options.find(o => o[0] === placeholder) || [placeholder, placeholder || "none"])[1];
+    return `<select id="${id}"><option value="">${inh !== null ? "Default (" + esc(inh) + ")" : "Choose…"}</option>` +
+      f.options.map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join("") + `</select>`;
+  }
+  const ph = esc(String(placeholder || f.example || "").replace(/#wh=\d+x\d+$/, ""));
+  if (t === "long") return `<textarea id="${id}" placeholder="${ph}"></textarea>`;
+  if (t === "color") return `<div class="inrow"><input type="color" class="cpick" data-for="${id}" value="${hex6(placeholder || "#477ccc")}" title="Pick a colour" aria-label="Pick ${esc(f.label)}">` +
+    `<input type="text" id="${id}" placeholder="${ph || "#477ccc"}" aria-label="${esc(f.label)} hex code"><button type="button" class="xbtn" data-clear="${id}" title="Use the default colour" aria-label="Reset ${esc(f.label)}">×</button></div>`;
+  const input = `<input type="${t === "url" ? "url" : t === "number" ? "number" : "text"}" id="${id}" placeholder="${ph}"${f.upload ? ' data-measure="1"' : ""}>`;
+  return f.upload ? `<div class="inrow">${input}<button type="button" class="btn sm" data-upload="${id}">Upload</button></div>` : input;
+}
+
+/* colour picker <-> hex box */
+document.addEventListener("input", e => {
+  const pk = e.target.closest && e.target.closest(".cpick"); if (!pk) return;
+  const box = $(pk.dataset.for); box.value = pk.value; box.dispatchEvent(new Event("input", { bubbles: true }));
+});
+document.addEventListener("click", e => {
+  const x = e.target.closest && e.target.closest("[data-clear]"); if (!x) return;
+  const box = $(x.dataset.clear); box.value = ""; box.dispatchEvent(new Event("input", { bubbles: true }));
+});
+function syncPickers(root) {
+  (root || document).querySelectorAll(".cpick").forEach(pk => {
+    const box = $(pk.dataset.for); if (!box) return;
+    const v = box.value.trim() || box.placeholder; if (isHex(v)) pk.value = hex6(v);
+    const x = document.querySelector(`[data-clear="${pk.dataset.for}"]`); if (x) x.style.visibility = box.value.trim() ? "visible" : "hidden";
+  });
+}
+document.addEventListener("input", e => { if (e.target.id === "fv") syncPickers($("fValueWrap")); });
+
+/* ---------- image upload (to GitHub via Apps Script) ---------- */
+async function uploadInto(inputId, file) {
+  const el = $(inputId);
+  if (!/^image\/(png|jpeg|gif)$/.test(file.type)) throw new Error("Use a PNG, JPG or GIF image.");
+  if (file.size > 2 * 1024 * 1024) throw new Error("Image is larger than 2 MB. Please resize it first.");
+  let dataUrl = await readFile(file);
+  let im = await loadImg(dataUrl);
+  if (inputId === "f_photo") {   // crop photos to a centred square so round/square photo layouts never stretch
+    const side = Math.min(im.naturalWidth, im.naturalHeight), out = Math.min(side, 400);
+    const cv = document.createElement("canvas"); cv.width = cv.height = out;
+    cv.getContext("2d").drawImage(im, (im.naturalWidth - side) / 2, (im.naturalHeight - side) / 2, side, side, 0, 0, out, out);
+    dataUrl = cv.toDataURL("image/jpeg", 0.9); file = { type: "image/jpeg", name: file.name, size: 0 };
+    im = await loadImg(dataUrl);
+  }
+  const wh = `#wh=${im.naturalWidth}x${im.naturalHeight}`;
+  if (DEMO_MODE) { localImages["demo:" + file.name] = dataUrl; el.value = "demo:" + file.name + wh; }
+  else {
+    const ext = file.type === "image/png" ? "png" : file.type === "image/gif" ? "gif" : "jpg";
+    const slug = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "image";
+    const d = await api("upload", { path: `images/${Date.now()}-${slug}.${ext}`, base64: dataUrl.split(",")[1] });
+    localImages[d.url] = dataUrl;
+    el.value = d.url + wh;
+  }
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-upload]"); if (!b) return;
+  const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/png,image/jpeg,image/gif";
+  fi.onchange = async () => {
+    if (!fi.files[0]) return;
+    const msgId = b.closest("#page-fields") ? "fieldsMsg" : "createMsg";
+    busy(b, true); say(msgId, "Uploading image…");
+    try { await uploadInto(b.dataset.upload, fi.files[0]); say(msgId, "Image uploaded. It goes live on your GitHub site within about a minute.", "ok"); }
+    catch (err) { say(msgId, err.message, "err"); }
+    busy(b, false);
+  };
+  fi.click();
+});
+/* Pasted image links: measure the image once so it gets exact width/height in emails */
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (!el.matches || !el.matches("input[data-measure]")) return;
+  const v = el.value.trim();
+  if (!v || /#wh=\d+x\d+$/.test(v) || !/^https?:\/\//.test(v)) return;
+  try { const im = await loadImg(v); el.value = v + `#wh=${im.naturalWidth}x${im.naturalHeight}`; el.dispatchEvent(new Event("input", { bubbles: true })); } catch (x) {}
+});
+
+/* ---------- social icons (drawn in the browser from icons.js, published to GitHub as PNG) ---------- */
+const iconCache = {};
+function svgOf(key, kind) { const e = window.SIG_ICONS && SIG_ICONS[key]; return e ? e[kind] : null; }
+async function svgImage(svg, fill) {
+  let t = svg.replace(/<!--[\s\S]*?-->/g, "");
+  if (fill) t = t.replace(/currentColor/g, fill).replace("<svg ", `<svg fill="${fill}" `);
+  const vb = (/viewBox="([^"]+)"/.exec(t)[1]).trim().split(/[\s,]+/).map(Number);
+  t = t.replace("<svg ", `<svg width="${vb[2]}" height="${vb[3]}" `);
+  const url = URL.createObjectURL(new Blob([t], { type: "image/svg+xml" }));
+  try { return { im: await loadImg(url), ratio: vb[2] / vb[3] }; } finally { URL.revokeObjectURL(url); }
+}
+async function drawIcon(net, d, px) {
+  const key = net[0], brand = net[3], brandFg = net[5];
+  const c = document.createElement("canvas"); c.width = c.height = px; const g = c.getContext("2d");
+  const place = (im, ratio, box) => { const w = ratio > 1 ? box : box * ratio, h = ratio > 1 ? box / ratio : box; g.drawImage(im, (px - w) / 2, (px - h) / 2, w, h); };
+  if (d.official && key === "instagram") {   // current app icon: gradient tile with white camera
+    const gr = g.createLinearGradient(0, px, px, 0);
+    [[0, "#FEDA75"], [0.25, "#FA7E1E"], [0.5, "#D62976"], [0.75, "#962FBF"], [1, "#4F5BD5"]].forEach(([o, col]) => gr.addColorStop(o, col));
+    g.fillStyle = gr; const rr = px * 0.24; g.beginPath(); g.moveTo(rr, 0); g.arcTo(px, 0, px, px, rr); g.arcTo(px, px, 0, px, rr); g.arcTo(0, px, 0, 0, rr); g.arcTo(0, 0, px, 0, rr); g.closePath(); g.fill();
+    const r = await svgImage(svgOf(key, "mono"), "#ffffff"); place(r.im, r.ratio, px * 0.6); return c.toDataURL("image/png");
+  }
+  if (d.official) {
+    const col = svgOf(key, "color");
+    if (col) { const r = await svgImage(col); place(r.im, r.ratio, px * 0.96); return c.toDataURL("image/png"); }
+    d = { shape: "rounded", mode: "brand", fg: "#ffffff" };   // no official artwork: app-style tile in the brand colour
+  }
+  const bg = d.mode === "brand" ? brand : d.bg;
+  const fg = d.shape === "plain" ? bg : (d.mode === "brand" ? (brandFg || d.fg) : d.fg);
+  if (d.shape !== "plain") {
+    g.fillStyle = bg; g.beginPath();
+    if (d.shape === "circle") g.arc(px / 2, px / 2, px / 2, 0, Math.PI * 2);
+    else { const r = d.shape === "rounded" ? px * 0.22 : 0; g.moveTo(r, 0); g.arcTo(px, 0, px, px, r); g.arcTo(px, px, 0, px, r); g.arcTo(0, px, 0, 0, r); g.arcTo(0, 0, px, 0, r); g.closePath(); }
+    g.fill();
+  }
+  const r = await svgImage(svgOf(key, "mono"), fg);
+  place(r.im, r.ratio, d.shape === "plain" ? px * 0.9 : px * 0.56);
+  return c.toDataURL("image/png");
+}
+function iconSet(s) {
+  const key = S.iconSetKey(s);
+  if (!iconCache[key]) {
+    const d = Object.assign(S.iconDesign(s), { official: low(s.icon_style) === "official" });
+    iconCache[key] = Promise.all(S.SOCIAL.map(n => drawIcon(n, Object.assign({}, d), 64).then(u => [n[0], u])))
+      .then(list => Object.fromEntries(list))
+      .catch(err => { delete iconCache[key]; throw err; });
+  }
+  return iconCache[key];
+}
+const usesCustomIcons = s => ["custom", "official"].includes(low(s.icon_style)) && !String(s.icon_base_url || "").trim();
+/** Make sure the custom icon set used by these settings exists on GitHub (uploads it once) */
+async function ensureIconSet(s) {
+  if (!usesCustomIcons(s) || DEMO_MODE) return;
+  if (!s.asset_base_url) throw new Error("Custom icons need GitHub image hosting. Add PAGES_URL and the GitHub settings in Apps Script (see README).");
+  const key = S.iconSetKey(s);
+  const ex = await api("iconSetExists", { key });
+  if (ex.exists) return;
+  const icons = await iconSet(s);
+  await api("uploadIconSet", { key, files: Object.entries(icons).map(([name, u]) => ({ name, base64: u.split(",")[1] })) });
+}
+
+/* ---------- sign in ---------- */
+function statusLine(d) {
+  $("sideStat").textContent = `${d.people.length} people, ${d.branches.length} branches`;
+  $("sideQuota").textContent = `${d.emailQuota} emails left today`;
+}
+async function login(key) {
+  KEY = key; say("loginMsg", "");
+  try { const d = await api("init"); DATA = d; store("sigKey", key); showApp(); statusLine(d); }
+  catch (e) { KEY = ""; store("sigKey", null); say("loginMsg", e.message, "err"); }
+}
+async function refresh() {
+  if (DEMO_MODE) return;
+  const d = await api("init"); DATA = d; statusLine(d);
+  fillBranchSelects(); renderPeople(); renderFieldInfo(); renderPickers();
+}
+function signOut() { KEY = ""; store("sigKey", null); location.reload(); }
+function showApp() {
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+  if (DATA.settings.logo_url) $("brandLogo").src = S.imgInfo(DATA.settings.logo_url).src;
+  buildEditor(); fillBranchSelects(); fillFieldSelect(); renderPeople(); renderPickers(); renderFieldInfo();
+  newForm(); showPage("create");
+}
+function showPage(name) {
+  document.querySelectorAll(".navlist button").forEach(b => b.dataset.page === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  ["create", "people", "fields"].forEach(t => $("page-" + t).classList.toggle("hidden", t !== name));
+  window.scrollTo(0, 0);
+}
+
+/* ---------- EDITOR ---------- */
+function buildEditor() {
+  $("rail").insertAdjacentHTML("beforeend", TABS.map(([id, label], i) =>
+    `<button type="button" role="tab" data-pane="${id}" aria-selected="${i === 0}"><span>${label}</span><span class="dot" aria-hidden="true"></span></button>`).join(""));
+
+  $("panes").innerHTML = TABS.map(([id]) => {
+    const toggle = TOGGLES.find(t => t.tab === id);
+    const tHtml = toggle ? `<label class="toggle"><input type="checkbox" id="o_${toggle.key}" checked> ${esc(toggle.label)}</label>` : "";
+    const layout = id === "style" ? `<label class="lb">Layout <span class="sub" style="font-weight:400">(${S.TEMPLATES.length} designs)</span></label><div class="chips" id="tplCats" role="group" aria-label="Layout category">` +
+      [["", "All"]].concat(S.CATEGORIES).map(([k, l], i) => `<button type="button" data-cat="${k}" aria-pressed="${i === 0}">${l}</button>`).join("") +
+      `</div><div class="templates" id="tplPicker" role="radiogroup" aria-label="Layout"></div><div class="sectitle">Text and colours</div>` : "";
+    const icons = id === "icons" ? `<label class="lb">Your icons</label><div class="iconstrip" id="iconStrip"></div><div class="hint" id="iconHint" style="margin-bottom:12px"></div>` : "";
+    const fields = FIELDS.filter(f => f.tab === id).map(f =>
+      `<div class="${f.wide || f.type === "long" ? "wide" : ""}" data-fwrap="${f.key}"><label class="lb" for="c_${f.key}">${esc(f.label)}<span class="tag hidden" id="cu_${f.key}">this person</span></label>` +
+      `<div data-ctl="${f.key}"></div>` + (f.hint ? `<div class="hint">${esc(f.hint)}</div>` : "") + `</div>`).join("");
+    const intro = id === "social" ? `<div class="hint" style="margin:-4px 0 10px">Paste each full profile link. Only networks with a link appear. Change the icon look under Icon design.</div>` : "";
+    return `<div class="edpane${id === "main" ? "" : " hidden"}" data-pane="${id}">${tHtml}${id === "main" ? '<div id="personalSlot"></div>' : ""}${layout}${icons}${intro}<div class="grid2">${fields}</div></div>`;
+  }).join("");
+  $("personalSlot").appendChild($("personalTpl").content.cloneNode(true));
+  buildPicker(); buildCompanyControls();
+  $("tplCats").addEventListener("click", e => {
+    const b = e.target.closest("button[data-cat]"); if (!b) return;
+    document.querySelectorAll("#tplCats button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    document.querySelectorAll("#tplPicker .tpl").forEach(l => l.classList.toggle("hidden", !!b.dataset.cat && l.dataset.cat !== b.dataset.cat));
+  });
+
+  $("rail").addEventListener("click", e => {
+    const b = e.target.closest("button[data-pane]"); if (!b) return;
+    document.querySelectorAll("#rail button[data-pane]").forEach(x => x.setAttribute("aria-selected", x === b));
+    document.querySelectorAll(".edpane").forEach(p => p.classList.toggle("hidden", p.dataset.pane !== b.dataset.pane));
+    $("paneTitle").textContent = b.textContent.trim();
+  });
+  $("panes").addEventListener("input", onEditorChange);
+  $("panes").addEventListener("change", e => {
+    if (e.target.id === "f_branch") { $("f_newBranch").classList.toggle("hidden", e.target.value !== "__new"); buildCompanyControls(true); }
+    onEditorChange();
+  });
+}
+
+function inheritedSettings() { return S.resolveSettings(DATA.settings, DATA.overrides, currentBranch(), ""); }
+function buildCompanyControls(keepValues) {
+  const inh = inheritedSettings(), vals = keepValues ? formCompany() : {};
+  FIELDS.forEach(f => {
+    document.querySelector(`[data-ctl="${f.key}"]`).innerHTML = fieldControl(f, "c_" + f.key, inh[f.key] || (f.type === "select" ? "" : undefined));
+    if (keepValues) $("c_" + f.key).value = vals[f.key] || "";
+  });
+}
+function buildPicker() {
+  const sample = { name: "Ritika Deshmukh", designation: "Business Development Manager", email: "ritika@caps.in", mobile: "+91-99527 43311",
+                   banner: false, disclaimer: false, extras: false, badges: false, social: false };
+  $("tplPicker").innerHTML = S.TEMPLATES.map(t =>
+    `<label class="tpl" data-cat="${t.cat}"><input type="radio" name="tpl" value="${t.id}"${t.id === "classic" ? " checked" : ""}>` +
+    `<span><div class="thumb" aria-hidden="true"><div>${S.render(Object.assign({}, sample, { template: t.id }), DATA.settings)}</div></div>${esc(t.label)}</span></label>`).join("");
+}
+function fillBranchSelects() {
+  const cur = $("f_branch").value;
+  const opts = DATA.branches.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
+  $("f_branch").innerHTML = opts + `<option value="__new">+ New branch…</option>`;
+  if (cur && (DATA.branches.includes(cur) || cur === "__new")) $("f_branch").value = cur;
+  const pb = $("pBranch").value;
+  $("pBranch").innerHTML = `<option value="">All branches</option>` + opts; $("pBranch").value = pb;
+}
+function currentBranch() { return $("f_branch").value === "__new" ? $("f_newBranch").value.trim() : $("f_branch").value; }
+function formPerson() {
+  const p = {}; PERSONAL.forEach(k => (p[k] = $("f_" + k).value.trim()));
+  p.email = p.email.toLowerCase();
+  p.template = (document.querySelector('input[name="tpl"]:checked') || { value: "classic" }).value;
+  TOGGLES.forEach(t => (p[t.key] = $("o_" + t.key).checked));
+  return p;
+}
+function formCompany() { const o = {}; FIELDS.forEach(f => (o[f.key] = $("c_" + f.key).value.trim())); return o; }
+function previewSettings() {
+  const s = inheritedSettings(), c = formCompany();
+  Object.keys(c).forEach(k => { if (c[k] !== "") s[k] = c[k]; });
+  return s;
+}
+
+function onEditorChange() {
+  const c = formCompany();
+  FIELDS.forEach(f => $("cu_" + f.key).classList.toggle("hidden", c[f.key] === ""));
+  TABS.forEach(([id]) => document.querySelector(`#rail button[data-pane="${id}"]`).classList.toggle("has-custom", FIELDS.some(f => f.tab === id && c[f.key] !== "")));
+  syncPickers($("panes"));
+  const p = formPerson();
+  $("whoName").textContent = p.name || "New person";
+  $("whoBranch").textContent = currentBranch() || "No branch selected";
+  $("metaFrom").textContent = (p.name || "Full name") + (p.email ? ` <${p.email}>` : "");
+  renderPreview();
+}
+
+let previewSeq = 0;
+async function renderPreview() {
+  const seq = ++previewSeq;
+  const p = formPerson(), s = previewSettings();
+  // icon design section: only show the custom-design fields when "Custom" is chosen
+  const custom = low(s.icon_style) === "custom";
+  ["icon_shape", "icon_color_mode", "icon_bg", "icon_fg"].forEach(k => document.querySelector(`[data-fwrap="${k}"]`).classList.toggle("hidden", !custom));
+  if (custom && low(s.icon_color_mode) === "brand") document.querySelector('[data-fwrap="icon_bg"]').classList.add("hidden");
+  let iconData = null;
+  if (usesCustomIcons(s)) {
+    try { iconData = await iconSet(s); } catch (e) { $("iconHint").textContent = "Couldn't draw the icons: " + e.message; }
+    if (seq !== previewSeq) return;
+  }
+  drawIconStrip(s, iconData);
+  let html = S.render(Object.assign({}, p, { name: p.name || "Full name" }), s, { iconData });
+  Object.keys(localImages).forEach(u => { html = html.split(esc(u)).join(localImages[u]); });
+  writeFrame(html);
+  const branchOvr = DATA.overrides.filter(o => o.scope === "Branch" && low(o.target) === low(currentBranch()));
+  const label = k => (FIELDS.find(f => f.key === k) || { label: k }).label.toLowerCase();
+  const n = $("ovrNote");
+  if (branchOvr.length) { n.textContent = `${currentBranch()} branch has its own ${branchOvr.map(o => label(o.field)).join(", ")}.`; n.classList.remove("hidden"); }
+  else n.classList.add("hidden");
+}
+function drawIconStrip(s, iconData) {
+  const used = S.SOCIAL.filter(n => s[n[0]]);
+  const list = used.length ? used : S.SOCIAL.slice(0, 6);
+  const size = parseInt(s.icon_size, 10) || 20;
+  $("iconStrip").innerHTML = list.map(n => {
+    const src = iconData ? iconData[n[0]] : `https://s3.amazonaws.com/htmlsig-assets/${["round","square","rounded","polygon","grey"].includes(low(s.icon_style)) ? low(s.icon_style) : "round"}/${n[0]}.png`;
+    return `<img src="${src}" alt="${esc(n[1])}" title="${esc(n[1])}" style="width:${size}px;height:${size}px">`;
+  }).join("");
+  $("iconHint").textContent = usesCustomIcons(s)
+    ? (used.length ? "" : "Sample icons shown. ") + (low(s.icon_style) === "official" ? "Current official logos. " : "") + "Published to your GitHub site automatically when you save."
+    : "Standard icon sets are hosted by htmlsig. Choose Custom to pick your own shape and colours.";
+}
+function writeFrame(sigHtml) {
+  const f = $("previewFrame");
+  f.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:14px 16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222;}p{margin:0 0 14px}</style></head>` +
+    `<body><p>Hi Arun,</p><p>Please find the updated proposal attached. Let me know if you have any questions.</p><p>Regards,</p>${sigHtml}` +
+    `<script>function h(){parent.postMessage({sigH:document.documentElement.scrollHeight},"*")}new ResizeObserver(h).observe(document.body);addEventListener("load",h);<\/script></body></html>`;
+}
+addEventListener("message", e => { if (e.data && e.data.sigH) $("previewFrame").style.height = (e.data.sigH + 4) + "px"; });
+
+function newForm() {
+  editing = null;
+  PERSONAL.forEach(k => ($("f_" + k).value = ""));
+  buildCompanyControls();
+  document.querySelector('input[name="tpl"][value="classic"]').checked = true;
+  TOGGLES.forEach(t => ($("o_" + t.key).checked = true));
+  $("formTitle").textContent = "New signature";
+  $("editInfo").textContent = "Fill in the details, then save and email it to the person.";
+  $("btnSend").textContent = "Save and email";
+  say("createMsg", ""); onEditorChange();
+}
+function editPerson(email) {
+  const p = DATA.people.find(x => x.email === email); if (!p) return;
+  editing = p;
+  $("f_branch").value = p.branch; $("f_newBranch").classList.add("hidden");
+  buildCompanyControls();
+  PERSONAL.forEach(k => ($("f_" + k).value = p[k] || ""));
+  DATA.overrides.filter(o => o.scope === "Person" && low(o.target) === p.email).forEach(o => { const el = $("c_" + o.field); if (el) el.value = o.value; });
+  (document.querySelector(`input[name="tpl"][value="${p.template}"]`) || document.querySelector('input[name="tpl"][value="classic"]')).checked = true;
+  TOGGLES.forEach(t => ($("o_" + t.key).checked = S.flag(p[t.key])));
+  $("formTitle").textContent = p.name;
+  $("editInfo").innerHTML = `${esc(p.branch)} branch. Last emailed ${esc(fmtDate(p.lastSent))}.` + (p.link ? ` <a href="${esc(p.link)}" target="_blank" rel="noopener">Download link</a>` : "");
+  $("btnSend").textContent = "Save and email update";
+  say("createMsg", ""); onEditorChange(); showPage("create");
+}
+
+function validateForm() {
+  const p = formPerson(), branch = currentBranch();
+  if (!p.name || !p.email) return "Name and email are required (Details).";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email)) return "That email address doesn't look right.";
+  if (!branch) return "Choose or enter a branch (Details).";
+  const bad = FIELDS.filter(f => f.type === "color").find(f => { const v = $("c_" + f.key).value.trim(); return v && !isHex(v); });
+  if (bad) return `${bad.label} must be a hex colour like #477ccc.`;
+  return "";
+}
+async function saveFromForm(send, btn) {
+  const err = validateForm(); if (err) return say("createMsg", err, "err");
+  const p = formPerson(), branch = currentBranch();
+  if (!editing && DATA.people.some(x => x.email === p.email) && !confirm(`${p.email} already has a signature. Replace it?`)) return;
+  busy(btn, true); say("createMsg", "Saving…");
+  try {
+    await ensureIconSet(previewSettings());
+    say("createMsg", send ? "Saving and emailing…" : "Saving…");
+    const d = await api("save", { employee: p, branch, send, personFields: formCompany() });
+    await refresh();
+    if (DATA.people.find(x => x.email === p.email)) editPerson(p.email);
+    say("createMsg", d.message, "ok");
+  } catch (e) { say("createMsg", e.message, "err"); }
+  busy(btn, false);
+}
+async function sendTest(btn) {
+  const p = formPerson();
+  if (!p.name) return say("createMsg", "Enter at least a name first.", "err");
+  const to = prompt("Send a test to which email address?\n(Leave empty to send it to the admin account.)", "");
+  if (to === null) return;
+  busy(btn, true); say("createMsg", "Sending test…");
+  try {
+    const s = previewSettings();
+    await ensureIconSet(s);
+    const d = await api("sendTest", { to, name: p.name, html: S.render(p, s) });
+    say("createMsg", d.message + " Newly uploaded images can take a minute to appear.", "ok");
+  } catch (e) { say("createMsg", e.message, "err"); }
+  busy(btn, false);
+}
+
+/* ---------- PEOPLE ---------- */
+function shownPeople() {
+  const q = low($("pSearch").value), b = $("pBranch").value;
+  return DATA.people.filter(p => !b || p.branch === b)
+    .filter(p => !q || [p.name, p.email, p.designation].join(" ").toLowerCase().includes(q))
+    .sort((a, c) => a.branch.localeCompare(c.branch) || a.name.localeCompare(c.name));
+}
+function renderPeople() {
+  const list = shownPeople();
+  $("btnResendShown").textContent = `Email everyone listed (${list.filter(p => low(p.status) !== "inactive").length})`;
+  const tplName = id => { const t = S.TEMPLATES.find(x => x.id === id) || S.TEMPLATES[0]; return t.label + ", " + (S.CATEGORIES.find(c => c[0] === t.cat) || ["", ""])[1]; };
+  $("peopleBody").innerHTML = list.length ? list.map(p => {
+    const inactive = low(p.status) === "inactive";
+    const custom = DATA.overrides.filter(o => o.scope === "Person" && low(o.target) === p.email).length;
+    return `<tr class="${inactive ? "inactive" : ""}">
+      <td><b>${esc(p.name)}</b>${custom ? `<span class="tag">${custom} custom</span>` : ""}<div class="sub">${esc(p.designation)}</div></td>
+      <td>${esc(p.branch)}</td><td>${esc(p.email)}</td><td>${esc(tplName(p.template))}</td>
+      <td>${inactive ? '<span class="pill">Inactive</span>' : p.lastSent ? `<span class="pill ok">${esc(fmtDate(p.lastSent))}</span>` : '<span class="pill">Not sent</span>'}${p.link ? ` <a class="sub" href="${esc(p.link)}" target="_blank" rel="noopener">file</a>` : ""}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <button type="button" class="btn sm" data-act="edit" data-email="${esc(p.email)}">Edit</button>
+        ${inactive ? "" : `<button type="button" class="btn sm" data-act="resend" data-email="${esc(p.email)}">Email</button>`}
+        <button type="button" class="btn sm" data-act="${inactive ? "activate" : "deactivate"}" data-email="${esc(p.email)}">${inactive ? "Reactivate" : "Deactivate"}</button>
+      </td></tr>`;
+  }).join("") : `<tr><td colspan="6" class="sub">No one matches.</td></tr>`;
+}
+async function peopleAction(act, email, btn) {
+  if (act === "edit") return editPerson(email);
+  busy(btn, true);
+  try {
+    if (act === "resend") {
+      say("peopleMsg", "Sending…");
+      const r = await runRegenerate([email], true, () => {});
+      say("peopleMsg", r.errors.length ? r.errors.join("; ") : `Signature emailed to ${email}.`, r.errors.length ? "err" : "ok");
+    } else {
+      const d = await api("setStatus", { email, status: act === "deactivate" ? "Inactive" : "Active" });
+      say("peopleMsg", d.message, "ok");
+    }
+    await refresh();
+  } catch (e) { say("peopleMsg", e.message, "err"); }
+  busy(btn, false);
+}
+async function runRegenerate(emails, notify, progress) {
+  let queue = emails.slice(), done = 0; const errors = [];
+  while (queue.length) {
+    const batch = queue.splice(0, 15);
+    const d = await api("regenerate", { emails: batch, notify });
+    done += d.done.length; errors.push(...d.errors);
+    if (d.quotaExhausted) { errors.push(`Daily email limit reached. ${d.remaining.length + queue.length} people not emailed yet, try again tomorrow.`); break; }
+    if (d.remaining.length && !d.done.length) { errors.push("Stopped: server made no progress."); break; }
+    queue = d.remaining.concat(queue); progress(done, emails.length);
+  }
+  return { done, errors };
+}
+async function resendShown(btn) {
+  const list = shownPeople().filter(p => low(p.status) !== "inactive").map(p => p.email);
+  if (!list.length || !confirm(`Email the current signature to ${list.length} people?`)) return;
+  busy(btn, true);
+  try {
+    const r = await runRegenerate(list, true, (d, t) => say("peopleMsg", `Emailed ${d} of ${t}…`));
+    say("peopleMsg", `Emailed ${r.done} of ${list.length}.` + (r.errors.length ? " Problems: " + r.errors.join("; ") : ""), r.errors.length ? "err" : "ok");
+    await refresh();
+  } catch (e) { say("peopleMsg", e.message, "err"); }
+  busy(btn, false);
+}
+
+/* ---------- BULK UPDATES ---------- */
+function fillFieldSelect() {
+  $("fField").innerHTML = TABS.map(([id, label]) => {
+    const fs = FIELDS.filter(f => f.tab === id); if (!fs.length) return "";
+    return `<optgroup label="${label}">` + fs.map(f => `<option value="${f.key}">${esc(f.label)}</option>`).join("") + `</optgroup>`;
+  }).join("");
+}
+function renderFieldInfo() {
+  const key = $("fField").value, f = FIELDS.find(x => x.key === key);
+  const cur = DATA.settings[key] || "";
+  $("fCurrent").textContent = (f.type === "select" ? (f.options.find(o => o[0] === cur) || [cur, cur])[1] : cur) || "(empty)";
+  const prev = $("fv") ? $("fv").value : "";
+  $("fValueWrap").innerHTML = fieldControl(f, "fv", f.type === "color" ? (DATA.settings[key] || "") : undefined);
+  if (f.type !== "select") $("fv").value = prev;
+  syncPickers($("fValueWrap"));
+  const ovr = DATA.overrides.filter(o => o.field === key);
+  $("fOverrides").innerHTML = ovr.length
+    ? `<label class="lb" style="margin-top:10px">Already different for</label><ul class="ovr">${ovr.map(o => `<li>${o.scope === "Branch" ? "Branch" : "Person"} ${esc(o.target)}: ${esc(o.value.length > 60 ? o.value.slice(0, 60) + "…" : o.value)}</li>`).join("")}</ul>` : "";
+  const scope = document.querySelector('input[name="scope"]:checked').value;
+  $("fValueHint").textContent = scope === "all" ? "" : "Leave empty to remove their special value so they return to the general one.";
+}
+function renderPickers() {
+  $("branchPick").innerHTML = DATA.branches.map(b => {
+    const n = DATA.people.filter(p => p.branch === b && low(p.status) !== "inactive").length;
+    return `<label class="check"><input type="checkbox" value="${esc(b)}"> ${esc(b)} <span class="sub">(${n})</span></label>`;
+  }).join("") || `<div class="sub">No branches yet.</div>`;
+  filterPersonPick();
+}
+function filterPersonPick() {
+  const q = low($("personSearch").value);
+  const checked = new Set([...document.querySelectorAll("#personPick input:checked")].map(i => i.value));
+  $("personPick").innerHTML = DATA.people.filter(p => low(p.status) !== "inactive")
+    .filter(p => !q || [p.name, p.email, p.branch].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(p => `<label class="check"><input type="checkbox" value="${esc(p.email)}" ${checked.has(p.email) ? "checked" : ""}> ${esc(p.name)} <span class="sub">${esc(p.branch)}</span></label>`)
+    .join("") || `<div class="sub">No one matches.</div>`;
+}
+function onScopeChange() {
+  const s = document.querySelector('input[name="scope"]:checked').value;
+  $("scopeBranch").classList.toggle("hidden", s !== "branch");
+  $("scopePerson").classList.toggle("hidden", s !== "person");
+  $("overwriteWrap").classList.toggle("hidden", s === "person");
+  $("overwriteLabel").textContent = s === "all" ? "Also replace values set for specific branches or people" : "Also replace values set for specific people in these branches";
+  renderFieldInfo();
+}
+async function applyField(btn) {
+  const field = $("fField").value, f = FIELDS.find(x => x.key === field);
+  const value = $("fv").value.trim();
+  const scope = document.querySelector('input[name="scope"]:checked').value;
+  const targets = scope === "branch" ? [...document.querySelectorAll("#branchPick input:checked")].map(i => i.value)
+                : scope === "person" ? [...document.querySelectorAll("#personPick input:checked")].map(i => i.value) : [];
+  if (scope !== "all" && !targets.length) return say("fieldsMsg", scope === "branch" ? "Pick at least one branch." : "Pick at least one person.", "err");
+  if (f.type === "color" && value && !isHex(value)) return say("fieldsMsg", "Use a hex colour like #477ccc.", "err");
+  if (scope === "all" && !value && !confirm(`Clear "${f.label}" for everyone?`)) return;
+  const notify = $("fNotify").checked;
+  const who = scope === "all" ? "everyone" : scope === "branch" ? targets.join(", ") : `${targets.length} people`;
+  if (!confirm(`Change "${f.label}" for ${who}${notify ? " and email their updated signatures" : ""}?`)) return;
+  busy(btn, true); say("fieldsMsg", "Updating the sheet…");
+  try {
+    const d = await api("updateField", { field, value, scope, targets, overwrite: $("fOverwrite").checked });
+    await refresh();
+    // publish any custom icon sets the affected people now use
+    const seen = new Set();
+    for (const em of d.affected) {
+      const p = DATA.people.find(x => x.email === em); if (!p) continue;
+      const s = S.resolveSettings(DATA.settings, DATA.overrides, p.branch, p.email);
+      if (!usesCustomIcons(s) || seen.has(S.iconSetKey(s))) continue;
+      seen.add(S.iconSetKey(s)); say("fieldsMsg", "Publishing icon set…"); await ensureIconSet(s);
+    }
+    say("fieldsMsg", "Rebuilding signatures…");
+    const r = await runRegenerate(d.affected, notify, (x, t) => say("fieldsMsg", `${notify ? "Emailed" : "Rebuilt"} ${x} of ${t}…`));
+    say("fieldsMsg", `Done. ${notify ? "Emailed" : "Rebuilt"} ${r.done} of ${d.affected.length}.` + (r.errors.length ? " Problems: " + r.errors.join("; ") : ""), r.errors.length ? "err" : "ok");
+    $("fv").value = ""; await refresh();
+  } catch (e) { say("fieldsMsg", e.message, "err"); }
+  busy(btn, false);
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll(".navlist button").forEach(b => b.addEventListener("click", () => showPage(b.dataset.page)));
+$("btnLogin").addEventListener("click", () => login($("keyInput").value.trim()));
+$("keyInput").addEventListener("keydown", e => { if (e.key === "Enter") login($("keyInput").value.trim()); });
+$("btnSignOut").addEventListener("click", signOut);
+$("btnDemo").addEventListener("click", () => { DEMO_MODE = true; DATA = JSON.parse(JSON.stringify(DEMO)); showApp(); statusLine(DATA); $("sideQuota").textContent = "Demo mode: nothing is saved"; });
+$("btnSend").addEventListener("click", e => saveFromForm(true, e.currentTarget));
+$("btnSaveOnly").addEventListener("click", e => saveFromForm(false, e.currentTarget));
+$("btnNew").addEventListener("click", newForm);
+$("btnTest").addEventListener("click", e => sendTest(e.currentTarget));
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+  previewWidth = b.dataset.w;
+  document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("mailcard").style.maxWidth = previewWidth === "mobile" ? "375px" : "";
+}));
+$("pSearch").addEventListener("input", renderPeople);
+$("pBranch").addEventListener("change", renderPeople);
+$("peopleBody").addEventListener("click", e => { const b = e.target.closest("button[data-act]"); if (b) peopleAction(b.dataset.act, b.dataset.email, b); });
+$("btnResendShown").addEventListener("click", e => resendShown(e.currentTarget));
+$("fField").addEventListener("change", () => { $("fValueWrap").innerHTML = ""; renderFieldInfo(); });
+document.querySelectorAll('input[name="scope"]').forEach(r => r.addEventListener("change", onScopeChange));
+$("personSearch").addEventListener("input", filterPersonPick);
+$("btnApply").addEventListener("click", e => applyField(e.currentTarget));
+
+if (!CONFIG.API_URL) $("notConfigured").classList.remove("hidden");
+else if (recall("sigKey")) login(recall("sigKey"));
+</script>
+</body>
+</html>
