@@ -294,7 +294,8 @@
 <template id="personalTpl">
   <div class="grid2">
     <div class="wide"><label class="lb" for="f_branch">Branch <span class="sub" style="font-weight:400">(for grouping only, not shown in the signature)</span></label>
-      <div class="inrow"><select id="f_branch"></select><input type="text" id="f_newBranch" class="hidden" placeholder="New branch name"></div></div>
+      <input type="text" id="f_branch" list="branchList" placeholder="Choose a branch or type a new one, e.g. Coimbatore" autocomplete="off"><datalist id="branchList"></datalist>
+      <div class="hint" id="branchHint"></div></div>
     <div><label class="lb" for="f_name">Name</label><input type="text" id="f_name" placeholder="Ritika Deshmukh"></div>
     <div><label class="lb" for="f_designation">Job title</label><input type="text" id="f_designation" placeholder="Business Development Manager"></div>
     <div><label class="lb" for="f_email">Email</label><input type="email" id="f_email" placeholder="name@caps.in"></div>
@@ -310,7 +311,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbzJSFW_dleBq4uPtbx_bucYRQVzK1yXm3K6nvAGpWjzE7g2-UipZ9gKmiXX1INBCSez9A/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbxQqUw6GgIFYy1-9TtnjvlOOM2B2HSOISvmv8UoRvd5g2S2Ulwf9OeyUhJONsmxx9xe-g/exec" };
 
 const DEMO = {
   settings: {
@@ -510,10 +511,14 @@ function statusLine(d) {
   $("sideStat").textContent = `${d.people.length} people, ${d.branches.length} branches`;
   $("sideQuota").textContent = `${d.emailQuota} emails left today`;
 }
+let signingIn = false;
 async function login(key) {
-  KEY = key; say("loginMsg", "");
-  try { const d = await api("init"); DATA = d; store("sigKey", key); showApp(); statusLine(d); }
+  if (signingIn || !key) return;
+  signingIn = true;
+  KEY = key; say("loginMsg", "Signing in…");
+  try { const d = await api("init"); DATA = d; store("sigKey", key); say("loginMsg", ""); if (editorBuilt) { fillBranchSelects(); renderPeople(); } else showApp(); statusLine(d); }
   catch (e) { KEY = ""; store("sigKey", null); say("loginMsg", e.message, "err"); }
+  signingIn = false;
 }
 async function refresh() {
   if (DEMO_MODE) return;
@@ -534,7 +539,10 @@ function showPage(name) {
 }
 
 /* ---------- EDITOR ---------- */
+let editorBuilt = false;
 function buildEditor() {
+  if (editorBuilt) return;
+  editorBuilt = true;
   $("rail").insertAdjacentHTML("beforeend", TABS.map(([id, label], i) =>
     `<button type="button" role="tab" data-pane="${id}" aria-selected="${i === 0}"><span>${label}</span><span class="dot" aria-hidden="true"></span></button>`).join(""));
 
@@ -567,7 +575,7 @@ function buildEditor() {
   });
   $("panes").addEventListener("input", onEditorChange);
   $("panes").addEventListener("change", e => {
-    if (e.target.id === "f_branch") { $("f_newBranch").classList.toggle("hidden", e.target.value !== "__new"); buildCompanyControls(true); }
+    if (e.target.id === "f_branch") buildCompanyControls(true);
     onEditorChange();
   });
 }
@@ -588,14 +596,23 @@ function buildPicker() {
     `<span><div class="thumb" aria-hidden="true"><div>${S.render(Object.assign({}, sample, { template: t.id }), DATA.settings)}</div></div>${esc(t.label)}</span></label>`).join("");
 }
 function fillBranchSelects() {
-  const cur = $("f_branch").value;
   const opts = DATA.branches.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
-  $("f_branch").innerHTML = opts + `<option value="__new">+ New branch…</option>`;
-  if (cur && (DATA.branches.includes(cur) || cur === "__new")) $("f_branch").value = cur;
+  $("branchList").innerHTML = opts;
   const pb = $("pBranch").value;
   $("pBranch").innerHTML = `<option value="">All branches</option>` + opts; $("pBranch").value = pb;
 }
-function currentBranch() { return $("f_branch").value === "__new" ? $("f_newBranch").value.trim() : $("f_branch").value; }
+function currentBranch() {
+  const v = $("f_branch").value.trim().replace(/\s+/g, " ");
+  const match = DATA.branches.find(b => b.toLowerCase() === v.toLowerCase());   // "coimbatore" -> existing "Coimbatore"
+  return match || v;
+}
+function branchHint() {
+  const v = currentBranch(), h = $("branchHint");
+  if (!v) h.textContent = DATA.branches.length ? "Click the box to pick a branch, or type a new branch name." : "No branches yet. Type the first branch name, e.g. Coimbatore.";
+  else if (DATA.branches.includes(v)) h.textContent = "";
+  else if (/^(Settings|Overrides|Log|Employees)$/i.test(v) || /^Sheet\d+$/i.test(v)) h.textContent = "That name is reserved. Please use a real branch name.";
+  else h.textContent = `New branch "${v}" will be created when you save.`;
+}
 function formPerson() {
   const p = {}; PERSONAL.forEach(k => (p[k] = $("f_" + k).value.trim()));
   p.email = p.email.toLowerCase();
@@ -618,6 +635,7 @@ function onEditorChange() {
   const p = formPerson();
   $("whoName").textContent = p.name || "New person";
   $("whoBranch").textContent = currentBranch() || "No branch selected";
+  branchHint();
   $("metaFrom").textContent = (p.name || "Full name") + (p.email ? ` <${p.email}>` : "");
   renderPreview();
 }
@@ -668,6 +686,7 @@ addEventListener("message", e => { if (e.data && e.data.sigH) $("previewFrame").
 function newForm() {
   editing = null;
   PERSONAL.forEach(k => ($("f_" + k).value = ""));
+  $("f_branch").value = DATA.branches.length === 1 ? DATA.branches[0] : "";
   buildCompanyControls();
   document.querySelector('input[name="tpl"][value="classic"]').checked = true;
   TOGGLES.forEach(t => ($("o_" + t.key).checked = true));
@@ -679,7 +698,7 @@ function newForm() {
 function editPerson(email) {
   const p = DATA.people.find(x => x.email === email); if (!p) return;
   editing = p;
-  $("f_branch").value = p.branch; $("f_newBranch").classList.add("hidden");
+  $("f_branch").value = p.branch;
   buildCompanyControls();
   PERSONAL.forEach(k => ($("f_" + k).value = p[k] || ""));
   DATA.overrides.filter(o => o.scope === "Person" && low(o.target) === p.email).forEach(o => { const el = $("c_" + o.field); if (el) el.value = o.value; });
@@ -695,7 +714,8 @@ function validateForm() {
   const p = formPerson(), branch = currentBranch();
   if (!p.name || !p.email) return "Name and email are required (Details).";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email)) return "That email address doesn't look right.";
-  if (!branch) return "Choose or enter a branch (Details).";
+  if (!branch) return "Choose or type a branch (Details).";
+  if (/^(Settings|Overrides|Log|Employees)$/i.test(branch) || /^Sheet\d+$/i.test(branch)) return "That branch name is reserved. Please use a real branch name.";
   const bad = FIELDS.filter(f => f.type === "color").find(f => { const v = $("c_" + f.key).value.trim(); return v && !isHex(v); });
   if (bad) return `${bad.label} must be a hex colour like #477ccc.`;
   return "";
