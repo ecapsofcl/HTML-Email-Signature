@@ -12,7 +12,6 @@
  */
 var SigTemplates = (function () {
   var DEFAULT_FONT = 'Helvetica, Arial, sans-serif';
-  var ASSETS = 'https://s3.amazonaws.com/htmlsig-assets/';
 
   // Set at the start of every render() from Style settings
   var FONT = 'font-family:' + DEFAULT_FONT + ';';
@@ -117,7 +116,7 @@ var SigTemplates = (function () {
     { key: 'phone_labels',     label: 'Contact labels',          tab: 'style', type: 'select', options: [['text', 'Words (Mobile:)'], ['letters', 'Letters (M)'], ['none', 'None']] },
     { key: 'logo_width',       label: 'Logo width (px)',         tab: 'style', type: 'number' },
 
-    { key: 'icon_style',       label: 'Icon design',             tab: 'icons', type: 'select', options: [['official', 'Official logos (full colour)'], ['custom', 'Custom (your shape and colours)'], ['round', 'Standard: round'], ['square', 'Standard: square'], ['rounded', 'Standard: rounded'], ['polygon', 'Standard: polygon'], ['grey', 'Standard: grey']] },
+    { key: 'icon_style',       label: 'Icon design',             tab: 'icons', type: 'select', options: [['official', 'Official logos (full colour)'], ['custom', 'Custom (your shape and colours)']] },
     { key: 'icon_shape',       label: 'Shape',                   tab: 'icons', type: 'select', options: [['circle', 'Circle'], ['rounded', 'Rounded square'], ['square', 'Square'], ['plain', 'Icon only (no background)']] },
     { key: 'icon_color_mode',  label: 'Colours',                 tab: 'icons', type: 'select', options: [['single', 'One colour for all'], ['brand', 'Each network\'s own colour']] },
     { key: 'icon_bg',          label: 'Background colour',       tab: 'icons', type: 'color' },
@@ -216,16 +215,16 @@ var SigTemplates = (function () {
   }
   /** Folder name for a custom icon set, e.g. "circle-477ccc-ffffff" or "rounded-brand-ffffff" */
   function iconSetKey(s) {
-    if (lower(s.icon_style) === 'official') return 'official-color-ffffff';
+    if (lower(s.icon_style) !== 'custom') return 'official-color-ffffff';   // older "standard" choices now use the official set
     var d = iconDesign(s);
     return [d.shape, d.mode === 'brand' ? 'brand' : d.bg.replace('#', ''), d.fg.replace('#', '')].join('-');
   }
+  /** All images are served from your own site (asset_base_url = GitHub Pages address) */
+  function assetBase(s) { return String(s.asset_base_url || '').replace(/\/?$/, '/'); }
   function iconBase(s) {
     var own = String(s.icon_base_url || '').trim();
-    if (own && !/htmlsig-assets\/(round|square|rounded|polygon|grey)\/?$/.test(own)) return own.replace(/\/?$/, '/');
-    var st = lower(s.icon_style) || 'round';
-    if (st === 'custom' || st === 'official') return String(s.asset_base_url || '').replace(/\/?$/, '/') + 'icons/' + iconSetKey(s) + '/';
-    return ASSETS + (['round', 'square', 'rounded', 'polygon', 'grey'].indexOf(st) >= 0 ? st : 'round') + '/';
+    if (own && !/amazonaws\.com/.test(own)) return own.replace(/\/?$/, '/');
+    return assetBase(s) + 'icons/' + iconSetKey(s) + '/';
   }
   function socialIcons(s, size) {
     size = parseInt(s.icon_size, 10) || size;
@@ -529,13 +528,14 @@ var SigTemplates = (function () {
     var rows = '';
     if (s.tagline) rows += tr('<i>' + esc(s.tagline) + '</i>', txt(12, 17, MUTE, 'padding:0 0 8px 0;'));
     var btns = [];
-    function imgBtn(href, file, w, alt) { return link(href, '<img src="' + ASSETS + file + '" alt="' + alt + '" width="' + w + '" height="37" border="0" style="display:block;width:' + w + 'px;height:37px;border:0;">'); }
-    if (s.app_apple) btns.push(imgBtn(s.app_apple, 'app-icon/apple.png', 119, 'Download on the App Store'));
-    if (s.app_google) btns.push(imgBtn(s.app_google, 'app-icon/google.png', 119, 'Get it on Google Play'));
-    if (s.app_amazon) btns.push(imgBtn(s.app_amazon, 'app-icon/amazon.png', 119, 'Available at Amazon Appstore'));
-    if (s.calendar_link) btns.push(imgBtn(s.calendar_link, 'calendar/schedule-a-meeting.png', 100, 'Schedule a meeting'));
+    if (!s.asset_base_url) return rows ? '<tr><td style="padding:12px 0 0 0;">' + tbl(rows) + '</td></tr>' : '';
+    function imgBtn(href, file, w, alt) { return link(href, '<img src="' + assetBase(s) + 'images/buttons/' + file + '" alt="' + alt + '" width="' + w + '" height="37" border="0" style="display:block;width:' + w + 'px;height:37px;border:0;">'); }
+    if (s.app_apple) btns.push(imgBtn(s.app_apple, 'apple.png', 119, 'Download on the App Store'));
+    if (s.app_google) btns.push(imgBtn(s.app_google, 'google.png', 119, 'Get it on Google Play'));
+    if (s.app_amazon) btns.push(imgBtn(s.app_amazon, 'amazon.png', 119, 'Available at Amazon Appstore'));
+    if (s.calendar_link) btns.push(imgBtn(s.calendar_link, 'schedule-a-meeting.png', 100, 'Schedule a meeting'));
     var wa = String(s.whatsapp_number || '').replace(/[^\d]/g, '');
-    if (wa) btns.push(imgBtn('https://wa.me/' + wa + (s.whatsapp_message ? '?text=' + encodeURIComponent(s.whatsapp_message) : ''), 'whatsapp/whatsapp-contact_me.png', 119, 'Contact me on WhatsApp'));
+    if (wa) btns.push(imgBtn('https://wa.me/' + wa + (s.whatsapp_message ? '?text=' + encodeURIComponent(s.whatsapp_message) : ''), 'whatsapp-contact-me.png', 119, 'Contact me on WhatsApp'));
     if (btns.length) rows += '<tr><td style="padding:0 0 8px 0;">' + tbl('<tr>' + btns.map(function (b, i) { return '<td style="padding:0;">' + b + '</td>' + (i < btns.length - 1 ? spacerCell(8) : ''); }).join('') + '</tr>') + '</td></tr>';
     if (s.cta_text && s.cta_link) {
       rows += '<tr><td style="padding:0 0 8px 0;">' + TB + 'border-collapse:separate;"><tr><td bgcolor="' + c + '" style="background-color:' + c + ';border-radius:4px;padding:7px 16px;">' +
