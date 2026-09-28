@@ -162,7 +162,7 @@
 <!-- ============ LOGIN ============ -->
 <div class="login" id="login">
   <div class="card">
-    <div class="chip"><img id="loginLogo" src="https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png" alt="eCAPS"></div>
+    <div class="chip"><img id="loginLogo" src="images/brand/logo.png" alt="eCAPS" onerror="this.replaceWith(Object.assign(document.createElement('b'),{textContent:'eCAPS'}))"></div>
     <h1>Signature Manager</h1>
     <div class="sub">Sign in with the admin key to manage email signatures.</div>
     <label class="lb" for="keyInput" style="margin-top:16px">Admin key</label>
@@ -180,7 +180,7 @@
 <div class="app hidden" id="app">
   <aside class="side">
     <div class="brandbox">
-      <div class="chip"><img id="brandLogo" src="https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png" alt="eCAPS"></div>
+      <div class="chip"><img id="brandLogo" src="images/brand/logo.png" alt="eCAPS"></div>
       <div class="app-name">Signature Manager</div>
       <div class="app-sub">Email signatures for all branches</div>
     </div>
@@ -311,18 +311,17 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbxGQKOjZV5ukOuAN5K4MkvOp8D5TNFYWazso_HN3XWMoSv5389K-y3s2ES0zol4vwT1Rw/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbzRYbLEGv-l7IFIcIKy1EM1gY992wzKhy4faZ4Iwz5-bUgsH9hGSFm1ytX3vHnpoBhvcw/exec" };
 
 const DEMO = {
   settings: {
     company_name: "eCAPS Computers India Pvt Ltd",
-    logo_url: "https://htmlsigs.s3.amazonaws.com/logos/files/001/385/602/landscape/ecaps_logo_new.png",
+    logo_url: "images/brand/logo.png",
     website: "https://www.caps.in", office_phone: "+91-422-2205100",
     office_locations: "Coimbatore, Mumbai, Bangalore, Chennai, Hyderabad, Cochin, Madurai, Delhi, Kolkata, Vijayawada",
-    banner_url: "https://htmlsigs.s3.amazonaws.com/banners/files/000/260/067/medium/New_VER1_Email_Signature_Banner_2024_450X200PIX.jpg#wh=450x200",
+    banner_url: "images/brand/banner.jpg#wh=450x200",
     banner_link: "https://www.caps.in", banner_width: "450",
-    twitter: "https://htmlsig.com/t/8d02279269d59c26", facebook: "https://htmlsig.com/t/03a3de2e79429845",
-    linkedin: "https://htmlsig.com/t/7e6f9bc48f2ebaac", instagram: "https://htmlsig.com/t/831da3fb8f0b2836",
+    twitter: "https://x.com/", facebook: "https://www.facebook.com/", linkedin: "https://www.linkedin.com/", instagram: "https://www.instagram.com/",
     font_family: "Helvetica, Arial, sans-serif", font_size: "normal", brand_color: "#477ccc", text_color: "#212121",
     secondary_color: "#6b6b6b", link_color: "#477ccc", separator: "/", phone_labels: "text",
     icon_style: "official", icon_shape: "circle", icon_color_mode: "single", icon_bg: "#477ccc", icon_fg: "#ffffff", icon_size: "20", icon_gap: "6",
@@ -511,14 +510,14 @@ async function drawIcon(net, d, px) {
 function iconSet(s) {
   const key = S.iconSetKey(s);
   if (!iconCache[key]) {
-    const d = Object.assign(S.iconDesign(s), { official: low(s.icon_style) === "official" });
+    const d = Object.assign(S.iconDesign(s), { official: low(s.icon_style) !== "custom" });
     iconCache[key] = Promise.all(S.SOCIAL.map(n => drawIcon(n, Object.assign({}, d), 64).then(u => [n[0], u])))
       .then(list => Object.fromEntries(list))
       .catch(err => { delete iconCache[key]; throw err; });
   }
   return iconCache[key];
 }
-const usesCustomIcons = s => ["custom", "official"].includes(low(s.icon_style)) && !String(s.icon_base_url || "").trim();
+const usesCustomIcons = s => !String(s.icon_base_url || "").trim() || /amazonaws\.com/.test(s.icon_base_url);
 /** Make sure the custom icon set used by these settings exists on GitHub (uploads it once) */
 async function ensureIconSet(s) {
   if (!usesCustomIcons(s) || DEMO_MODE) return;
@@ -693,13 +692,10 @@ function drawIconStrip(s, iconData) {
   const used = S.SOCIAL.filter(n => s[n[0]]);
   const list = used.length ? used : S.SOCIAL.slice(0, 6);
   const size = parseInt(s.icon_size, 10) || 20;
-  $("iconStrip").innerHTML = list.map(n => {
-    const src = iconData ? iconData[n[0]] : `https://s3.amazonaws.com/htmlsig-assets/${["round","square","rounded","polygon","grey"].includes(low(s.icon_style)) ? low(s.icon_style) : "round"}/${n[0]}.png`;
-    return `<img src="${src}" alt="${esc(n[1])}" title="${esc(n[1])}" style="width:${size}px;height:${size}px">`;
-  }).join("");
+  $("iconStrip").innerHTML = iconData ? list.map(n => `<img src="${iconData[n[0]]}" alt="${esc(n[1])}" title="${esc(n[1])}" style="width:${size}px;height:${size}px">`).join("") : "";
   $("iconHint").textContent = usesCustomIcons(s)
     ? (used.length ? "" : "Sample icons shown. ") + (low(s.icon_style) === "official" ? "Current official logos. " : "") + "Published to your GitHub site automatically when you save."
-    : "Standard icon sets are hosted by htmlsig. Choose Custom to pick your own shape and colours.";
+    : "Using icons from your own icon folder.";
 }
 function writeFrame(sigHtml) {
   const f = $("previewFrame");
