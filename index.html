@@ -160,6 +160,7 @@
   .cv-blk.sel .cv-tag { display:block; }
   .cv-h { position:absolute; right:-5px; bottom:-5px; width:11px; height:11px; background:#fff; border:2px solid var(--brand); border-radius:2px; cursor:nwse-resize; display:none; }
   .cv-blk.sel .cv-h { display:block; }
+  .cv-blk img { max-width:100% !important; height:auto !important; }
   .cv-empty { font-size:11.5px; color:#9aa5b6; text-align:center; padding:14px 4px; }
   .cv-ind { height:3px; background:var(--brand); border-radius:2px; margin:1px 0; }
   .cv-size { position:absolute; right:10px; bottom:-20px; font-size:10.5px; background:var(--nav); color:#fff; border-radius:3px; padding:1px 5px; z-index:2; }
@@ -327,7 +328,7 @@
           <div>
             <div class="panel">
               <div class="phead"><h2>Canvas</h2><div class="grow"></div>
-                <label class="sub" style="display:flex;align-items:center;gap:6px">Width <input type="range" id="dsWidth" min="360" max="640" step="10" style="width:110px"> <b id="dsWidthVal"></b></label>
+                <label class="sub" style="display:flex;align-items:center;gap:6px">Width <input type="range" id="dsWidth" min="360" max="600" step="10" style="width:110px"> <b id="dsWidthVal"></b></label>
                 <button type="button" class="btn sm" data-addrow="1">+ Row</button><button type="button" class="btn sm" data-addrow="2">+ 2 columns</button><button type="button" class="btn sm" data-addrow="3">+ 3 columns</button>
               </div>
               <div class="pbody canvaswrap"><div id="dsCanvas" class="canvas"></div></div>
@@ -398,7 +399,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycby5LmU_Pui8EOjF5uDKUHwnsblQnurQp_ya3h37HZmpTRXakcsB-F1GJjB_7e2JEr4T6w/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbyJWZ8GJ2eVt2lEXABYDU0_DzzzGe0gds3X9-s77IR59Y_SdGon3533TDs6dpWPZMyw5A/exec" };
 
 const DEMO = {
   settings: {
@@ -619,14 +620,18 @@ function iconSet(s) {
 }
 const usesCustomIcons = s => !String(s.icon_base_url || "").trim() || /amazonaws\.com/.test(s.icon_base_url);
 /** Make sure the custom icon set used by these settings exists on GitHub (uploads it once) */
+const knownSets = new Set();
 async function ensureIconSet(s) {
   if (!usesCustomIcons(s) || DEMO_MODE) return;
   if (!s.asset_base_url) throw new Error("Custom icons need GitHub image hosting. Add PAGES_URL and the GitHub settings in Apps Script (see README).");
   const key = S.iconSetKey(s);
+  if (knownSets.has(key) || (DATA.iconSets || []).includes(key)) return;      // already published: no server trip
   const ex = await api("iconSetExists", { setKey: key });
-  if (ex.exists) return;
-  const icons = await iconSet(s);
-  await api("uploadIconSet", { setKey: key, files: Object.entries(icons).map(([name, u]) => ({ name, base64: u.split(",")[1] })) });
+  if (!ex.exists) {
+    const icons = await iconSet(s);
+    await api("uploadIconSet", { setKey: key, files: Object.entries(icons).map(([name, u]) => ({ name, base64: u.split(",")[1] })) });
+  }
+  knownSets.add(key);
 }
 
 /* ---------- sign in ---------- */
@@ -639,17 +644,23 @@ async function login(key) {
   if (signingIn || !key) return;
   signingIn = true;
   KEY = key; say("loginMsg", "Signing in…");
-  try { const d = await api("init"); DATA = d; store("sigKey", key); say("loginMsg", ""); if (editorBuilt) { fillBranchSelects(); renderPeople(); } else showApp(); statusLine(d); }
+  try { const d = await api("init"); DATA = d; (d.iconSets || []).forEach(k => knownSets.add(k)); store("sigKey", key); say("loginMsg", ""); if (editorBuilt) { fillBranchSelects(); renderPeople(); } else showApp(); statusLine(d); }
   catch (e) { KEY = ""; store("sigKey", null); say("loginMsg", e.message, "err"); }
   signingIn = false;
 }
-async function refresh() {
+async function refresh(fromReply) {
   if (DEMO_MODE) return;
-  const d = await post({ key: KEY, action: "init" });
-  if (!d.ok) throw new Error(d.auth === false ? "The admin key was not accepted. Please sign out and sign in again." : (d.message || "Couldn't reload data"));
+  let d = fromReply && fromReply.data;
+  if (!d) {
+    d = await post({ key: KEY, action: "init" });
+    if (!d.ok) throw new Error(d.auth === false ? "The admin key was not accepted. Please sign out and sign in again." : (d.message || "Couldn't reload data"));
+  }
   DATA = d; statusLine(d);
+  (d.iconSets || []).forEach(k => knownSets.add(k));
   fillBranchSelects(); renderPeople(); renderFieldInfo(); renderPickers();
-  if (editorBuilt) buildPicker();
+  const sig = JSON.stringify(DATA.designs || []);
+  if (editorBuilt && sig !== refresh.lastDesigns) buildPicker();
+  refresh.lastDesigns = sig;
 }
 function signOut() { KEY = ""; store("sigKey", null); location.reload(); }
 function showApp() {
@@ -863,9 +874,11 @@ async function saveFromForm(send, btn) {
   busy(btn, true); say("createMsg", "Saving…");
   try {
     await ensureIconSet(previewSettings());
-    say("createMsg", send ? "Saving and emailing…" : "Saving…");
+    say("createMsg", send ? "Saving, creating the signature file and emailing…" : "Saving…");
+    const t0 = Date.now();
     const d = await api("save", { employee: p, branch, send, personFields: formCompany() });
-    await refresh();
+    await refresh(d);
+    d.message += ` (${Math.round((Date.now() - t0) / 100) / 10}s)`;
     if (DATA.people.find(x => x.email === p.email)) editPerson(p.email);
     say("createMsg", d.message, "ok");
   } catch (e) { say("createMsg", e.message, "err"); }
@@ -892,10 +905,11 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const B = S.BLOCKS;
 function dsNew(starter) {
   const st = clone(starter || S.STARTERS[0]);
-  DS = { id: "", name: starter && starter.name !== "Blank" ? "My " + starter.name.toLowerCase() : "", width: 520, rows: st.rows };
+  DS = { id: "", name: starter && starter.name !== "Blank" ? "My " + starter.name.toLowerCase() : "", width: Math.min(600, +(DATA.settings && DATA.settings.sig_width) || 600), rows: st.rows };
   dsNormalize(); dsSel = null; dsHist = []; dsDirty = false; dsRenderAll();
 }
 function dsNormalize() {
+  DS.width = Math.min(600, +DS.width || 600);
   DS.rows.forEach(r => { r.cols = r.cols || []; r.cols.forEach(c => { c.blocks = c.blocks || []; c.w = +c.w || Math.round(100 / r.cols.length); }); });
 }
 function dsPush() { dsHist.push(JSON.stringify(DS)); if (dsHist.length > 50) dsHist.shift(); dsDirty = true; }
@@ -987,7 +1001,7 @@ function dsRenderProps() {
   const t = $("dsPropTitle"), box = $("dsProps"), o = dsGet(dsSel);
   if (!o) {
     dsSel = null; t.textContent = "Design";
-    box.innerHTML = `<p class="sub" style="margin-top:0">Click a block, a column or "Row settings" on the canvas to change it.</p>` + rangeRow("Overall width", "width", DS, 360, 640, 10, "px") +
+    box.innerHTML = `<p class="sub" style="margin-top:0">Click a block, a column or "Row settings" on the canvas to change it.</p>` + rangeRow("Overall width (600 px = maximum for all email programs)", "width", DS, 360, 600, 10, "px") +
       `<div class="note">Tip: designs are built from rows and columns because that's what every email program displays reliably. What you see here is what arrives in the inbox.</div>`;
     return;
   }
@@ -995,7 +1009,7 @@ function dsRenderProps() {
     const d = B[o.type]; t.textContent = d.label;
     if (o.size == null) o.size = d.def;
     const full = o.type === "banner" || o.type === "divider";
-    let h = rangeRow(full ? "Width (0 = full column)" : "Size", "size", o, full ? 0 : d.min, d.max, full ? 10 : 1, "px");
+    let h = rangeRow(full ? "Width (0 = full column)" : "Size", "size", o, full ? 0 : d.min, Math.min(d.max, 600), full ? 10 : 1, "px");
     if (d.text || o.type === "divider" || o.type === "button") h += colourRow(o.type === "button" ? "Button colour" : "Colour", "color", o);
     if (d.text) h += `<div class="prow"><label class="check"><input type="checkbox" data-bool="bold" ${(o.bold ?? d.bold) ? "checked" : ""}> Bold</label><label class="check"><input type="checkbox" data-bool="italic" ${(o.italic ?? d.italic) ? "checked" : ""}> Italic</label></div>`;
     if (o.type === "text") h += `<div class="prow"><label class="lb">Text</label><textarea data-text="text" style="min-height:70px">${esc(o.text || "")}</textarea></div>`;
@@ -1205,7 +1219,7 @@ function dsWire() {
     const btn = e.currentTarget; busy(btn, true); say("studioMsg", "Saving design…");
     try {
       if (DEMO_MODE) { DS.id = DS.id || "demo" + Date.now().toString(36); DATA.designs = (DATA.designs || []).filter(x => x.id !== DS.id).concat([clone(DS)]); say("studioMsg", "Saved (demo only).", "ok"); }
-      else { const d = await api("saveDesign", { design: DS }); DS.id = d.id; await refresh(); say("studioMsg", d.message, "ok"); }
+      else { const d = await api("saveDesign", { design: DS }); DS.id = d.id; await refresh(d); say("studioMsg", d.message, "ok"); }
       dsDirty = false; dsFillPick(); buildPicker();
     } catch (err) { say("studioMsg", err.message, "err"); }
     busy(btn, false);
@@ -1215,7 +1229,7 @@ function dsWire() {
     if (!confirm(`Delete the design "${DS.name}"?`)) return;
     const btn = e.currentTarget; busy(btn, true);
     try {
-      if (!DEMO_MODE) { const d = await api("deleteDesign", { id: DS.id }); await refresh(); say("studioMsg", d.message, "ok"); }
+      if (!DEMO_MODE) { const d = await api("deleteDesign", { id: DS.id }); await refresh(d); say("studioMsg", d.message, "ok"); }
       else DATA.designs = (DATA.designs || []).filter(x => x.id !== DS.id);
       DS = null; dsFillPick(); buildPicker(); dsNew(S.STARTERS[0]);
     } catch (err) { say("studioMsg", err.message, "err"); }
@@ -1281,6 +1295,8 @@ async function peopleAction(act, email, btn) {
     } else {
       const d = await api("setStatus", { email, status: act === "deactivate" ? "Inactive" : "Active" });
       say("peopleMsg", d.message, "ok");
+      await refresh(d);
+      busy(btn, false); return;
     }
     await refresh();
   } catch (e) { say("peopleMsg", e.message, "err"); }
@@ -1370,7 +1386,7 @@ async function applyField(btn) {
   busy(btn, true); say("fieldsMsg", "Updating the sheet…");
   try {
     const d = await api("updateField", { field, value, scope, targets, overwrite: $("fOverwrite").checked });
-    await refresh();
+    await refresh(d);
     // publish any custom icon sets the affected people now use
     const seen = new Set();
     for (const em of d.affected) {
