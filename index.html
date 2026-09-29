@@ -333,7 +333,7 @@
               <div class="pbody canvaswrap"><div id="dsCanvas" class="canvas"></div></div>
             </div>
             <div class="panel" style="margin-top:14px">
-              <div class="phead"><h2>Email preview</h2><div class="grow"></div><label class="check" style="margin:0"><input type="checkbox" id="dsExtras"> Show banner and disclaimer</label></div>
+              <div class="phead"><h2>Email preview</h2><div class="grow"></div><label class="check" style="margin:0"><input type="checkbox" id="dsExtras" checked> Show banner and disclaimer</label></div>
               <div class="mailframe"><div class="mailcard"><iframe id="dsFrame" title="Design preview"></iframe></div></div>
             </div>
           </div>
@@ -398,7 +398,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbwqGLP2pLRjzFgY62SZuPJ7Y5wZCFPViIwtEEpNJdyhh32E4KGo3FRppTvyRFZTomXwgg/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycby5LmU_Pui8EOjF5uDKUHwnsblQnurQp_ya3h37HZmpTRXakcsB-F1GJjB_7e2JEr4T6w/exec" };
 
 const DEMO = {
   settings: {
@@ -937,7 +937,8 @@ async function dsRenderCanvas() {
       const selCol = dsSel && dsSel.kind === "col" && dsSel.r === ri && dsSel.c === ci;
       const blocks = c.blocks.map((b, bi) => {
         const sel = dsSel && dsSel.kind === "block" && dsSel.r === ri && dsSel.c === ci && dsSel.b === bi;
-        const prev = S.blockPreview(p, s, b, c.align || "left", { iconData }) || `<div class="cv-empty">${esc(B[b.type].label)} (no data yet)</div>`;
+        const colW = Math.round((DS.width - 2 * (+r.pad || 0)) * c.w / r.cols.reduce((a, x) => a + x.w, 0)) - 2 * (+c.pad || 0);
+        const prev = S.blockPreview(p, s, b, c.align || "left", { iconData, colW }) || `<div class="cv-empty">${esc(B[b.type].label)} (no data yet)</div>`;
         return `<div class="cv-blk${sel ? " sel" : ""}" draggable="true" data-r="${ri}" data-c="${ci}" data-b="${bi}"><span class="cv-tag">${esc(B[b.type].label)}</span>${prev}<span class="cv-h" data-r="${ri}" data-c="${ci}" data-b="${bi}" title="Drag to resize"></span></div>`;
       }).join("") || `<div class="cv-empty">Drop blocks here</div>`;
       const bg = S.hex(c.bg, "");
@@ -974,7 +975,7 @@ function rangeRow(label, key, obj, min, max, step, unit) {
 }
 function colourRow(label, key, obj, allowNone) {
   const v = obj[key] || "", named = ["text", "accent", "label", "white"];
-  const opts = (allowNone ? [["", "None"]] : []).concat([["text", "Text colour"], ["accent", "Accent colour"], ["label", "Label colour"], ["white", "White"], ["custom", "Custom…"]]);
+  const opts = (allowNone ? [["", allowNone === true ? "None" : allowNone]] : []).concat([["text", "Text colour"], ["accent", "Accent colour"], ["label", "Label colour"], ["white", "White"], ["custom", "Custom…"]]);
   const cur = !v ? "" : named.includes(v) ? v : "custom";
   return `<div class="prow"><label class="lb">${label}</label><div class="inrow"><select data-colsel="${key}">${opts.map(([k, l]) => `<option value="${k}"${k === cur ? " selected" : ""}>${l}</option>`).join("")}</select>` +
     `<input type="color" class="cpick${cur === "custom" ? "" : " hidden"}" data-colpick="${key}" value="${hex6(cur === "custom" ? v : "#477ccc")}"></div></div>`;
@@ -993,10 +994,17 @@ function dsRenderProps() {
   if (dsSel.kind === "block") {
     const d = B[o.type]; t.textContent = d.label;
     if (o.size == null) o.size = d.def;
-    let h = rangeRow("Size", "size", o, d.min, d.max, 1, "px");
+    const full = o.type === "banner" || o.type === "divider";
+    let h = rangeRow(full ? "Width (0 = full column)" : "Size", "size", o, full ? 0 : d.min, d.max, full ? 10 : 1, "px");
     if (d.text || o.type === "divider" || o.type === "button") h += colourRow(o.type === "button" ? "Button colour" : "Colour", "color", o);
     if (d.text) h += `<div class="prow"><label class="check"><input type="checkbox" data-bool="bold" ${(o.bold ?? d.bold) ? "checked" : ""}> Bold</label><label class="check"><input type="checkbox" data-bool="italic" ${(o.italic ?? d.italic) ? "checked" : ""}> Italic</label></div>`;
     if (o.type === "text") h += `<div class="prow"><label class="lb">Text</label><textarea data-text="text" style="min-height:70px">${esc(o.text || "")}</textarea></div>`;
+    if (d.contact) {
+      h += colourRow("Value colour", "color", o, "Default") + colourRow("Label colour", "labelColor", o, "Default") +
+        segRow("Label", "labels", o, [["", "Default"], ["text", d.contact + ":"], ["letters", d.contact[0]], ["none", "None"]]) +
+        `<div class="prow"><label class="check"><input type="checkbox" data-bool="boldLabel" ${o.boldLabel ? "checked" : ""}> Bold label</label></div>` +
+        rangeRow("Label width (keeps values lined up)", "lw", Object.assign({ lw: o.labels === "letters" ? 18 : 58 }, o), 0, 140, 1, "px");
+    }
     if (o.type === "contacts") h += segRow("Arrange", "style", o, [["list", "List"], ["inline", "One line"]]) + segRow("Labels", "labels", o, [["", "Default"], ["text", "Words"], ["letters", "Letters"], ["none", "None"]]) +
       (o.style === "inline" ? segRow("Separator", "sep", o, [["", "Default"], ["|", "|"], ["/", "/"], ["none", "Space"]]) : "");
     if (o.type === "photo") h += segRow("Shape", "shape", o, [["round", "Round"], ["square", "Rounded square"]]);
@@ -1004,6 +1012,7 @@ function dsRenderProps() {
     if (o.type !== "spacer") h += rangeRow("Space below", "gap", Object.assign({ gap: 4 }, o), 0, 30, 1, "px");
     if (["tagline", "button"].includes(o.type)) h += `<div class="hint">The ${o.type === "tagline" ? "tagline text" : "button text and link"} come from the Extras section.</div>`;
     if (o.type === "logo") h += `<div class="hint">The logo image comes from Details > Logo.</div>`;
+    if (o.type === "banner") h += `<div class="hint">0 = fill the column. The banner image and link come from the Banner section. When a design has a Banner block, the banner is no longer added under the signature.</div>`;
     h += `<div class="pbtns"><button type="button" class="btn sm" data-bact="up">Move up</button><button type="button" class="btn sm" data-bact="down">Move down</button><button type="button" class="btn sm" data-bact="dup">Duplicate</button><button type="button" class="btn sm" data-bact="del">Delete</button></div>`;
     box.innerHTML = h;
   } else if (dsSel.kind === "col") {
@@ -1119,8 +1128,9 @@ function dsWire() {
         dsPreviewSoon();
       };
     } else {
-      const blk = DS.rows[+h.dataset.r].cols[+h.dataset.c].blocks[+h.dataset.b], d = B[blk.type], s0 = +blk.size || d.def;
-      const perPx = ["logo", "photo", "divider"].includes(blk.type) ? 1 : blk.type === "spacer" ? 0.5 : blk.type === "social" ? 0.15 : 0.08;
+      const blk = DS.rows[+h.dataset.r].cols[+h.dataset.c].blocks[+h.dataset.b], d = B[blk.type];
+      const s0 = +blk.size || d.def || Math.round(h.parentElement.getBoundingClientRect().width);
+      const perPx = ["logo", "photo", "divider", "banner"].includes(blk.type) ? 1 : blk.type === "spacer" ? 0.5 : blk.type === "social" ? 0.15 : 0.08;
       const tag = document.createElement("span"); tag.className = "cv-size"; h.parentElement.appendChild(tag);
       move = ev => {
         const dist = blk.type === "spacer" ? (ev.clientY - startY) * 2 : (ev.clientX - startX) + (ev.clientY - startY) * 0.3;
@@ -1226,7 +1236,9 @@ function dsWire() {
 /* while resizing, redraw just this block (keeps the handle and its pointer capture alive) */
 function dsRefreshBlock(handle, blk) {
   const el = handle.parentElement, col = DS.rows[+handle.dataset.r].cols[+handle.dataset.c];
-  const html = S.blockPreview(dsSample(), dsSettings(), blk, col.align || "left", { iconData: lastIconData });
+  const row = DS.rows[+handle.dataset.r];
+  const colW = Math.round((DS.width - 2 * (+row.pad || 0)) * col.w / row.cols.reduce((a, x) => a + x.w, 0)) - 2 * (+col.pad || 0);
+  const html = S.blockPreview(dsSample(), dsSettings(), blk, col.align || "left", { iconData: lastIconData, colW });
   [...el.children].forEach(ch => { if (!ch.matches(".cv-tag,.cv-h,.cv-size")) ch.remove(); });
   el.insertAdjacentHTML("beforeend", html || "");
   el.appendChild(el.querySelector(".cv-h")); const tag = el.querySelector(".cv-size"); if (tag) el.appendChild(tag);
