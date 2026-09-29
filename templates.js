@@ -174,8 +174,8 @@ var SigTemplates = (function () {
     if (w && !h) h = i.w ? Math.round(w * i.h / i.w) : 0;
     if (h && !w) w = i.h ? Math.round(h * i.w / i.h) : 0;
     return '<img src="' + esc(i.src) + '" alt="' + esc(alt || '') + '"' + (w ? ' width="' + w + '"' : '') + (h ? ' height="' + h + '"' : '') +
-      ' border="0" style="display:' + (extra && extra.inline ? 'inline-block' : 'block') + ';' + (w ? 'width:' + w + 'px;' : '') +
-      'max-width:100%;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;vertical-align:middle;">';
+      ' border="0" style="display:' + (extra && extra.inline ? 'inline-block' : 'block') + ';' + (w ? 'width:' + w + 'px;' : '') + (h ? 'height:' + h + 'px;' : 'height:auto;') +
+      (w ? 'min-width:' + w + 'px;max-width:' + w + 'px;' : '') + 'border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;vertical-align:middle;">';
   }
   function link(href, inner) { return href ? '<a href="' + esc(href) + '" target="_blank" style="text-decoration:none;border:0;">' + inner + '</a>' : inner; }
 
@@ -755,7 +755,7 @@ var SigTemplates = (function () {
     var disc = o.disclaimer && s.disclaimer
       ? '<tr><td style="padding:14px 0 0 0;">' + tbl('<tr><td style="border-top:1px solid #dddddd;padding:10px 0 0 0;' + txt(9, 12, '#8a8a8a') + '">' + esc(s.disclaimer) + '</td></tr>', w) + '</td></tr>' : '';
 
-    var html = TB + 'width:' + w + 'px;max-width:100%;' + FONT + '-webkit-text-size-adjust:none;-ms-text-size-adjust:none;" width="' + w + '">' +
+    var html = TB + 'width:' + w + 'px;' + FONT + '-webkit-text-size-adjust:none;-ms-text-size-adjust:none;" width="' + w + '">' +
       '<tr><td align="left" style="padding:0;">' + body + '</td></tr>' +
       (o.extras ? extrasBlock(s, c) : '') + banner + (o.badges ? badgesBlock(s) : '') + disc + '</table>';
     ICONDATA = null;
