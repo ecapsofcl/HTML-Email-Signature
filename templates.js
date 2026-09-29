@@ -504,15 +504,21 @@ var SigTemplates = (function () {
     name:      { label: 'Name',            min: 12, max: 34,  def: 17,  unit: 'px text', text: true, color: 'text', bold: true },
     title:     { label: 'Job title',       min: 10, max: 22,  def: 12,  unit: 'px text', text: true, color: 'accent' },
     company:   { label: 'Company name',    min: 10, max: 20,  def: 12,  unit: 'px text', text: true, color: 'text', bold: true },
-    contacts:  { label: 'Contact details', min: 10, max: 16,  def: 12,  unit: 'px text' },
+    contacts:  { label: 'All contact details', min: 10, max: 16,  def: 12,  unit: 'px text' },
+    mobile:    { label: 'Mobile',          min: 10, max: 18,  def: 12,  unit: 'px text', contact: 'Mobile' },
+    office:    { label: 'Office phone',    min: 10, max: 18,  def: 12,  unit: 'px text', contact: 'Office' },
+    email:     { label: 'Email',           min: 10, max: 18,  def: 12,  unit: 'px text', contact: 'Email' },
+    web:       { label: 'Website',         min: 10, max: 18,  def: 12,  unit: 'px text', contact: 'Web' },
+    fax:       { label: 'Fax',             min: 10, max: 18,  def: 12,  unit: 'px text', contact: 'Fax' },
     locations: { label: 'Office locations', min: 9, max: 14,  def: 10,  unit: 'px text', text: true, color: 'label' },
     address:   { label: 'Address',         min: 9,  max: 15,  def: 11,  unit: 'px text', text: true, color: 'label' },
     social:    { label: 'Social icons',    min: 14, max: 40,  def: 20,  unit: 'px' },
-    divider:   { label: 'Line',            min: 16, max: 640, def: 60,  unit: 'px long', color: 'accent' },
+    divider:   { label: 'Line',            min: 16, max: 640, def: 60,  unit: 'px long (0 = full width)', color: 'accent' },
     spacer:    { label: 'Space',           min: 2,  max: 60,  def: 10,  unit: 'px tall' },
     text:      { label: 'Custom text',     min: 9,  max: 24,  def: 12,  unit: 'px text', text: true, color: 'text' },
     tagline:   { label: 'Tagline',         min: 10, max: 18,  def: 12,  unit: 'px text', text: true, color: 'label', italic: true },
-    button:    { label: 'Button',          min: 10, max: 18,  def: 12,  unit: 'px text' }
+    button:    { label: 'Button',          min: 10, max: 18,  def: 12,  unit: 'px text' },
+    banner:    { label: 'Banner',          min: 120, max: 640, def: 0,  unit: 'px wide (0 = fit column)' }
   };
   function clampN(v, lo, hi, d) { v = parseFloat(v); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); }
   function colorOf(v, c) {
@@ -526,9 +532,10 @@ var SigTemplates = (function () {
       ? '<table align="' + align + '" border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td style="padding:0;">' + inner + '</td></tr></table>'
       : inner;
   }
-  function blockRow(p, s, o, c, b, align) {
+  function blockRow(p, s, o, c, b, align, colW) {
+    colW = colW || 520;
     var def = BLOCKS[b.type]; if (!def) return '';
-    var sz = Math.round(clampN(b.size, def.min, def.max, def.def));
+    var sz = b.type === 'banner' || (b.type === 'divider' && +b.size === 0) ? Math.round(clampN(b.size, 0, 640, 0)) : Math.round(clampN(b.size, def.min, def.max, def.def));
     var gap = Math.round(clampN(b.gap, 0, 40, b.type === 'spacer' ? 0 : 4));
     if (b.type === 'spacer') return gapRow(sz);
     var tdOpen = function (style) { return '<tr><td align="' + align + '" style="' + (style || '') + 'padding:0 0 ' + gap + 'px 0;text-align:' + align + ';">'; };
@@ -539,6 +546,11 @@ var SigTemplates = (function () {
     var content = '';
     switch (b.type) {
       case 'logo': content = s.logo_url ? wrapAlign(link(s.website, img(s.logo_url, sz, 0, s.company_name)), align) : ''; return content ? tdOpen() + content + '</td></tr>' : '';
+      case 'banner': {
+        if (!o.banner || !s.banner_url) return '';
+        var bwid = Math.min(sz > 0 ? sz : colW, colW);
+        return tdOpen() + wrapAlign(link(s.banner_link, img(s.banner_url, bwid, 0, s.company_name)), align) + '</td></tr>';
+      }
       case 'photo': return tdOpen() + wrapAlign(avatar(p, c, sz, b.shape !== 'square'), align) + '</td></tr>';
       case 'name': return p.name ? tdOpen(textStyle()) + esc(p.name) + '</td></tr>' : '';
       case 'title': return p.designation ? tdOpen(textStyle()) + esc(p.designation) + '</td></tr>' : '';
@@ -547,6 +559,21 @@ var SigTemplates = (function () {
       case 'address': content = [s.address, s.address2].filter(Boolean).map(esc).join('<br>'); return content ? tdOpen(textStyle()) + content + '</td></tr>' : '';
       case 'tagline': return s.tagline ? tdOpen(textStyle()) + esc(s.tagline) + '</td></tr>' : '';
       case 'text': return b.text ? tdOpen(textStyle()) + esc(b.text).replace(/\n/g, '<br>') + '</td></tr>' : '';
+      case 'mobile': case 'office': case 'email': case 'web': case 'fax': {
+        var row = contactRows(p, s).filter(function (x) { return x[0] === def.contact; })[0];
+        if (!row) return '';
+        var mode = b.labels || LABELMODE || 'text';
+        var lab = mode === 'none' ? '' : (mode === 'letters' ? row[1] : row[0] + ':');
+        var val = row[2];
+        if (b.color) val = val.replace(/color:[^;"]+;/, 'color:' + colorOf(b.color, c) + ';');
+        var lc = colorOf(b.labelColor || 'label', c), lh2 = Math.round(sz * 1.5);
+        var lw = b.lw == null ? (mode === 'letters' ? 18 : 58) : Math.round(clampN(b.lw, 0, 140, 58));
+        if (lab && lw > 0 && align === 'left') {   // fixed label column: values line up when these blocks are stacked
+          return '<tr><td style="padding:0 0 ' + gap + 'px 0;">' + tbl('<tr><td width="' + lw + '" valign="top" style="' + txt(sz, lh2, lc, 'width:' + lw + 'px;white-space:nowrap;' + (b.boldLabel ? 'font-weight:bold;' : '')) + '">' + lab + '</td>' +
+            '<td valign="top" style="' + txt(sz, lh2, INK) + '">' + val + '</td></tr>') + '</td></tr>';
+        }
+        return tdOpen(txt(sz, lh2, INK)) + (lab ? '<span style="color:' + lc + ';' + (b.boldLabel ? 'font-weight:bold;' : '') + '">' + lab + '</span>&nbsp;' : '') + val + '</td></tr>';
+      }
       case 'contacts': {
         var saved = LABELMODE, savedSep = SEPMODE;
         if (b.labels) LABELMODE = b.labels;
@@ -562,7 +589,7 @@ var SigTemplates = (function () {
         var ic = socialIcons(Object.assign({}, s, { icon_size: String(sz) }), sz);
         return ic ? tdOpen() + wrapAlign(ic, align) + '</td></tr>' : '';
       }
-      case 'divider': return tdOpen() + wrapAlign(hline(colorOf(b.color || 'accent', c), sz, Math.round(clampN(b.thick, 1, 8, 2))), align) + '</td></tr>';
+      case 'divider': return tdOpen() + wrapAlign(hline(colorOf(b.color || 'accent', c), sz > 0 ? Math.min(sz, colW) : colW, Math.round(clampN(b.thick, 1, 8, 2))), align) + '</td></tr>';
       case 'button': {
         if (!(s.cta_text && s.cta_link)) return '';
         var bc = colorOf(b.color || 'accent', c);
@@ -572,6 +599,9 @@ var SigTemplates = (function () {
       }
     }
     return '';
+  }
+  function designHas(d, type) {
+    return (d.rows || []).some(function (r) { return (r.cols || []).some(function (c) { return (c.blocks || []).some(function (b) { return b.type === type; }); }); });
   }
   function designWidth(d) { return Math.round(clampN(d && d.width, 360, 640, 520)); }
   function renderDesign(p, s, o, c, d) {
@@ -586,7 +616,7 @@ var SigTemplates = (function () {
         var al = ['left', 'center', 'right'].indexOf(col.align) >= 0 ? col.align : 'left';
         var va = ['top', 'middle', 'bottom'].indexOf(col.valign) >= 0 ? col.valign : 'top';
         var pad = Math.round(clampN(col.pad, 0, 40, 0)), bg = hex(col.bg, '');
-        var inner = (col.blocks || []).map(function (b) { return blockRow(p, s, o, c, b, al); }).join('');
+        var inner = (col.blocks || []).map(function (b) { return blockRow(p, s, o, c, b, al, Math.max(20, w - 2 * pad)); }).join('');
         return '<td valign="' + va + '" align="' + al + '" width="' + w + '"' + (bg ? ' bgcolor="' + bg + '"' : '') + ' style="width:' + w + 'px;padding:' + pad + 'px;' + (bg ? 'background-color:' + bg + ';' : '') + '">' +
           (inner ? tbl(inner, Math.max(20, w - 2 * pad)) : '&nbsp;') + '</td>' +
           (i < cols.length - 1 && r.divider ? spacerCell(divGap) + vline(colorOf(r.divColor || 'accent', c), divW) + spacerCell(divGap) : '');
@@ -609,13 +639,22 @@ var SigTemplates = (function () {
       { w: 70, blocks: [{ type: 'name' }, { type: 'title', gap: 8 }, { type: 'contacts' }, { type: 'company', gap: 2 }, { type: 'locations', gap: 8 }, { type: 'social' }] }] }] },
     { name: 'Logo on top', rows: [
       { gap: 6, cols: [{ w: 100, blocks: [{ type: 'logo', size: 150 }] }] },
-      { gap: 8, cols: [{ w: 100, blocks: [{ type: 'divider', size: 520, thick: 2 }] }] },
+      { gap: 8, cols: [{ w: 100, blocks: [{ type: 'divider', size: 0, thick: 2 }] }] },
       { gap: 0, cols: [{ w: 45, blocks: [{ type: 'name' }, { type: 'title' }, { type: 'company', gap: 8 }, { type: 'social' }] }, { w: 55, blocks: [{ type: 'contacts' }] }] }] },
     { name: 'Photo left', rows: [{ gap: 0, cols: [
       { w: 24, align: 'center', blocks: [{ type: 'photo', size: 88 }] },
       { w: 76, blocks: [{ type: 'name' }, { type: 'title' }, { type: 'company', gap: 8 }, { type: 'divider', size: 40 }, { type: 'contacts', gap: 8 }, { type: 'social' }] }] }] },
     { name: 'Centred card', rows: [{ gap: 0, pad: 16, bg: '#f5f7fa', cols: [{ w: 100, align: 'center', blocks: [
       { type: 'logo', size: 120, gap: 10 }, { type: 'name', size: 18 }, { type: 'title', gap: 8 }, { type: 'divider', size: 60, gap: 8 }, { type: 'contacts', style: 'inline', gap: 10 }, { type: 'social' }] }] }] },
+    { name: 'Split contacts', rows: [
+      { gap: 8, divider: true, cols: [
+        { w: 32, valign: 'middle', blocks: [{ type: 'logo', size: 130 }] },
+        { w: 68, valign: 'middle', blocks: [{ type: 'name', size: 18 }, { type: 'title' }, { type: 'company', size: 11 }] }] },
+      { gap: 8, cols: [{ w: 100, blocks: [{ type: 'divider', size: 0, thick: 1, color: 'label' }] }] },
+      { gap: 6, cols: [
+        { w: 50, blocks: [{ type: 'mobile', labels: 'letters' }, { type: 'office', labels: 'letters' }] },
+        { w: 50, blocks: [{ type: 'email', labels: 'letters' }, { type: 'web', labels: 'letters' }] }] },
+      { gap: 0, cols: [{ w: 100, blocks: [{ type: 'social' }] }] }] },
     { name: 'Blank', rows: [{ gap: 0, cols: [{ w: 100, blocks: [{ type: 'name' }] }] }] }
   ];
 
@@ -693,7 +732,7 @@ var SigTemplates = (function () {
   /** One block on its own (used by the Design studio canvas) */
   function blockPreview(p, s, b, align, extra) {
     var c = applyStyle(s, extra), o = options(p);
-    var html = blockRow(p, s, o, c, b, align || 'left');
+    var html = blockRow(p, s, o, c, b, align || 'left', (extra && extra.colW) || 520);
     ICONDATA = null;
     return html ? tbl(html, 0, 'width:100%;') : '';
   }
@@ -706,8 +745,10 @@ var SigTemplates = (function () {
     var design = findDesign(p, s, extra);
     var body = design ? renderDesign(p, s, o, c, design) : LAYOUTS[o.template](p, s, o, c);
     var bw = parseInt(s.banner_width, 10) || 450;
-    var banner = o.banner && s.banner_url ? '<tr><td style="padding:14px 0 0 0;">' + link(s.banner_link, img(s.banner_url, bw, 0, s.company_name)) + '</td></tr>' : '';
-    var w = Math.max(design ? designWidth(design) : 480, bw);
+    if (design) bw = Math.min(bw, designWidth(design));       // custom designs: banner never wider than the design
+    var showBanner = o.banner && s.banner_url && !(design && designHas(design, 'banner'));
+    var banner = showBanner ? '<tr><td style="padding:14px 0 0 0;">' + link(s.banner_link, img(s.banner_url, bw, 0, s.company_name)) + '</td></tr>' : '';
+    var w = design ? designWidth(design) : Math.max(480, bw);
     var disc = o.disclaimer && s.disclaimer
       ? '<tr><td style="padding:14px 0 0 0;">' + tbl('<tr><td style="border-top:1px solid #dddddd;padding:10px 0 0 0;' + txt(9, 12, '#8a8a8a') + '">' + esc(s.disclaimer) + '</td></tr>', w) + '</td></tr>' : '';
 
