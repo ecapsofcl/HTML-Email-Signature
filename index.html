@@ -112,7 +112,7 @@
   .mailcard { background:#fff; border:1px solid var(--line-2); border-radius:6px; margin:0 auto; overflow:hidden; transition:max-width .2s; }
   .mailmeta { border-bottom:1px solid var(--line-2); padding:8px 12px; font-size:12px; color:var(--muted); display:grid; grid-template-columns:52px 1fr; gap:2px 6px; }
   .mailmeta b { color:var(--ink); font-weight:500; }
-  #previewFrame { display:block; width:100%; border:0; height:300px; background:#fff; }
+  #previewFrame, #dsFrame { display:block; width:100%; border:0; height:300px; background:#fff; }
   @media (max-width:1320px) { .create { grid-template-columns:150px minmax(0,1fr); } .previewcol { grid-column:1 / -1; position:static; } }
   @media (max-width:760px) { .create { grid-template-columns:1fr; } .rail { position:static; flex-direction:row; flex-wrap:wrap; } .rail .who { width:100%; } }
 
@@ -126,6 +126,49 @@
   .thumb > div { position:absolute; top:4px; left:4px; width:480px; transform:scale(.23); transform-origin:top left; }
   .iconstrip { display:flex; flex-wrap:wrap; gap:6px; padding:10px; background:#f6f8fb; border:1px solid var(--line-2); border-radius:var(--r); min-height:44px; align-items:center; }
   .iconstrip img { width:26px; height:26px; display:block; }
+
+  /* ---------- design studio ---------- */
+  .studio { display:grid; grid-template-columns:190px minmax(0,1fr) 290px; gap:14px; align-items:start; }
+  .studio .props { position:sticky; top:68px; max-height:calc(100vh - 90px); overflow:auto; }
+  @media (max-width:1200px) { .studio { grid-template-columns:170px minmax(0,1fr); } .studio .props { grid-column:1 / -1; position:static; max-height:none; } }
+  .palette { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .palette button { border:1px solid var(--line); background:#fff; border-radius:var(--r); padding:7px 6px; font-size:12.5px; cursor:grab; text-align:left; color:var(--ink); }
+  .palette button:hover { border-color:var(--brand); background:var(--brand-soft); }
+  .starter { display:block; width:100%; text-align:left; margin-bottom:6px; }
+  .canvaswrap { overflow:auto; background:#f6f8fb; }
+  .canvas { background:#fff; margin:0 auto; padding:10px; box-shadow:0 0 0 1px var(--line); min-height:80px; }
+  .cv-row { border:1px dashed transparent; border-radius:6px; margin-bottom:8px; }
+  .cv-row:hover, .cv-row.sel { border-color:#b9c7dc; }
+  .cv-row.sel { border-style:solid; border-color:var(--brand); }
+  .cv-rbar { display:flex; gap:4px; align-items:center; font-size:11px; color:var(--muted); padding:2px 4px; visibility:hidden; }
+  .cv-row:hover .cv-rbar, .cv-row.sel .cv-rbar { visibility:visible; }
+  .cv-rbar button { border:1px solid var(--line); background:#fff; border-radius:4px; font-size:11px; padding:1px 6px; cursor:pointer; color:var(--ink); }
+  .cv-rbar .grow { flex:1; }
+  .cv-cols { display:flex; align-items:stretch; }
+  .cv-col { position:relative; min-height:54px; min-width:30px; border:1px dashed #d5dde8; border-radius:4px; padding:4px; }
+  .cv-col.sel { border:1px solid var(--brand); box-shadow:0 0 0 2px var(--brand-soft); }
+  .cv-col.over { background:#eef4ff; }
+  .cv-rz { flex:none; width:10px; cursor:col-resize; position:relative; }
+  .cv-rz::after { content:""; position:absolute; left:4px; top:10%; bottom:10%; width:2px; border-radius:1px; background:#c9d3e2; }
+  .cv-rz:hover::after, .cv-rz.active::after { background:var(--brand); }
+  .cv-div { flex:none; width:2px; margin:0 6px; }
+  .cv-blk { position:relative; border:1px solid transparent; border-radius:3px; cursor:grab; margin:1px 0; }
+  .cv-blk:hover { border-color:#c9d3e2; }
+  .cv-blk.sel { border-color:var(--brand); }
+  .cv-blk.dragging { opacity:.35; }
+  .cv-blk .cv-tag { position:absolute; top:-9px; left:4px; font-size:10px; background:var(--brand); color:#fff; border-radius:3px; padding:0 4px; display:none; line-height:15px; }
+  .cv-blk.sel .cv-tag { display:block; }
+  .cv-h { position:absolute; right:-5px; bottom:-5px; width:11px; height:11px; background:#fff; border:2px solid var(--brand); border-radius:2px; cursor:nwse-resize; display:none; }
+  .cv-blk.sel .cv-h { display:block; }
+  .cv-empty { font-size:11.5px; color:#9aa5b6; text-align:center; padding:14px 4px; }
+  .cv-ind { height:3px; background:var(--brand); border-radius:2px; margin:1px 0; }
+  .cv-size { position:absolute; right:10px; bottom:-20px; font-size:10.5px; background:var(--nav); color:#fff; border-radius:3px; padding:1px 5px; z-index:2; }
+  .seg3 { display:inline-flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+  .seg3 button { border:0; background:#fff; padding:5px 10px; font-size:12.5px; cursor:pointer; }
+  .seg3 button[aria-pressed="true"] { background:var(--brand-soft); color:var(--brand-d); font-weight:600; }
+  .prow { margin-bottom:12px; }
+  .prow input[type=range] { width:100%; }
+  .pbtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
 
   /* ---------- people ---------- */
   .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:end; padding:12px 14px; border-bottom:1px solid var(--line-2); }
@@ -188,6 +231,7 @@
     <nav class="navlist" aria-label="Main">
       <button type="button" data-page="create" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Create signature</button>
       <button type="button" data-page="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.8a3.3 3.3 0 010 6.4M18 14.8c2 .7 3.2 2.4 3.6 5.2"/></svg>People</button>
+      <button type="button" data-page="studio"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>Design studio</button>
       <button type="button" data-page="fields"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Bulk updates</button>
     </nav>
     <div class="side-foot">
@@ -260,6 +304,47 @@
     </section>
 
     <!-- ===== BULK UPDATES ===== -->
+    <section id="page-studio" class="hidden">
+      <div class="bar">
+        <div><h1>Design studio</h1><div class="sub">Build your own layout: drag blocks in, resize columns and blocks, then save it.</div></div>
+        <div class="grow"></div>
+        <span class="msg" id="studioMsg" role="status"></span>
+        <select id="dsPick" aria-label="Design" style="width:auto;max-width:190px"></select>
+        <input id="dsName" type="text" placeholder="Design name" aria-label="Design name" style="width:170px">
+        <button type="button" class="btn" id="dsUndo" title="Undo (Ctrl+Z)">Undo</button>
+        <button type="button" class="btn" id="dsDelete">Delete</button>
+        <button type="button" class="btn" id="dsUse">Use for a person</button>
+        <button type="button" class="btn primary" id="dsSave">Save design</button>
+      </div>
+      <div class="page">
+        <div class="studio">
+          <div class="panel">
+            <div class="phead"><h2>Blocks</h2></div>
+            <div class="pbody"><div class="palette" id="dsPalette"></div><div class="hint" style="margin-top:8px">Drag into a column, or select a column and click a block.</div></div>
+            <div class="phead" style="border-top:1px solid var(--line-2)"><h2>Start from</h2></div>
+            <div class="pbody" id="dsStarters"></div>
+          </div>
+          <div>
+            <div class="panel">
+              <div class="phead"><h2>Canvas</h2><div class="grow"></div>
+                <label class="sub" style="display:flex;align-items:center;gap:6px">Width <input type="range" id="dsWidth" min="360" max="640" step="10" style="width:110px"> <b id="dsWidthVal"></b></label>
+                <button type="button" class="btn sm" data-addrow="1">+ Row</button><button type="button" class="btn sm" data-addrow="2">+ 2 columns</button><button type="button" class="btn sm" data-addrow="3">+ 3 columns</button>
+              </div>
+              <div class="pbody canvaswrap"><div id="dsCanvas" class="canvas"></div></div>
+            </div>
+            <div class="panel" style="margin-top:14px">
+              <div class="phead"><h2>Email preview</h2><div class="grow"></div><label class="check" style="margin:0"><input type="checkbox" id="dsExtras"> Show banner and disclaimer</label></div>
+              <div class="mailframe"><div class="mailcard"><iframe id="dsFrame" title="Design preview"></iframe></div></div>
+            </div>
+          </div>
+          <div class="panel props">
+            <div class="phead"><h2 id="dsPropTitle">Design</h2></div>
+            <div class="pbody" id="dsProps"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="page-fields" class="hidden">
       <div class="bar"><div><h1>Bulk updates</h1><div class="sub">Change a banner, logo, colour or any common field for one person, a branch or everyone.</div></div><div class="grow"></div>
         <span class="msg" id="fieldsMsg" role="status"></span>
@@ -313,7 +398,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbw-KKlt07gdmBLEBERRFekOuf-C-1jLixbqUSIpMly8bEJUgVBVPaZVXBauD58RN_7fxA/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbwqGLP2pLRjzFgY62SZuPJ7Y5wZCFPViIwtEEpNJdyhh32E4KGo3FRppTvyRFZTomXwgg/exec" };
 
 const DEMO = {
   settings: {
@@ -330,7 +415,7 @@ const DEMO = {
     badge_height: "40", asset_base_url: "",
     disclaimer: "This e-mail message may contain confidential or legally privileged information and is intended only for the use of the intended recipient(s). Any unauthorized disclosure, dissemination, distribution, copying or the taking of any action in reliance on the information herein is prohibited."
   },
-  overrides: [], branches: ["Coimbatore"],
+  overrides: [], branches: ["Coimbatore"], designs: [],
   people: [{ name: "Ritika Deshmukh", designation: "Business Development Manager", email: "ritika@caps.in", mobile: "+91-99527 43311",
              office: "", photo: "", template: "classic", banner: "Yes", social: "Yes", disclaimer: "Yes", extras: "Yes", badges: "Yes",
              status: "Active", branch: "Coimbatore", link: "", lastSent: "" }],
@@ -564,6 +649,7 @@ async function refresh() {
   if (!d.ok) throw new Error(d.auth === false ? "The admin key was not accepted. Please sign out and sign in again." : (d.message || "Couldn't reload data"));
   DATA = d; statusLine(d);
   fillBranchSelects(); renderPeople(); renderFieldInfo(); renderPickers();
+  if (editorBuilt) buildPicker();
 }
 function signOut() { KEY = ""; store("sigKey", null); location.reload(); }
 function showApp() {
@@ -574,8 +660,9 @@ function showApp() {
 }
 function showPage(name) {
   document.querySelectorAll(".navlist button").forEach(b => b.dataset.page === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
-  ["create", "people", "fields"].forEach(t => $("page-" + t).classList.toggle("hidden", t !== name));
+  ["create", "people", "fields", "studio"].forEach(t => $("page-" + t).classList.toggle("hidden", t !== name));
   window.scrollTo(0, 0);
+  if (name === "studio") dsOpen();
 }
 
 /* ---------- EDITOR ---------- */
@@ -590,7 +677,7 @@ function buildEditor() {
     const toggle = TOGGLES.find(t => t.tab === id);
     const tHtml = toggle ? `<label class="toggle"><input type="checkbox" id="o_${toggle.key}" checked> ${esc(toggle.label)}</label>` : "";
     const layout = id === "style" ? `<label class="lb">Layout <span class="sub" style="font-weight:400">(${S.TEMPLATES.length} designs)</span></label><div class="chips" id="tplCats" role="group" aria-label="Layout category">` +
-      [["", "All"]].concat(S.CATEGORIES).map(([k, l], i) => `<button type="button" data-cat="${k}" aria-pressed="${i === 0}">${l}</button>`).join("") +
+      [["", "All"], ["mine", "My designs"]].concat(S.CATEGORIES).map(([k, l], i) => `<button type="button" data-cat="${k}" aria-pressed="${i === 0}">${l}</button>`).join("") +
       `</div><div class="templates" id="tplPicker" role="radiogroup" aria-label="Layout"></div><div class="sectitle">Text and colours</div>` : "";
     const icons = id === "icons" ? `<label class="lb">Your icons</label><div class="iconstrip" id="iconStrip"></div><div class="hint" id="iconHint" style="margin-bottom:12px"></div>` : "";
     const fields = FIELDS.filter(f => f.tab === id).map(f =>
@@ -628,12 +715,19 @@ function buildCompanyControls(keepValues) {
     if (keepValues) $("c_" + f.key).value = vals[f.key] || "";
   });
 }
+function designMap() { const m = {}; (DATA.designs || []).forEach(d => (m[d.id] = d)); return m; }
+function allLayouts() {
+  return (DATA.designs || []).map(d => ({ id: "custom:" + d.id, label: d.name, cat: "mine" })).concat(S.TEMPLATES);
+}
 function buildPicker() {
   const sample = { name: "Ritika Deshmukh", designation: "Business Development Manager", email: "ritika@caps.in", mobile: "+91-99527 43311",
                    banner: false, disclaimer: false, extras: false, badges: false, social: false };
-  $("tplPicker").innerHTML = S.TEMPLATES.map(t =>
-    `<label class="tpl" data-cat="${t.cat}"><input type="radio" name="tpl" value="${t.id}"${t.id === "classic" ? " checked" : ""}>` +
-    `<span><div class="thumb" aria-hidden="true"><div>${S.render(Object.assign({}, sample, { template: t.id }), DATA.settings)}</div></div>${esc(t.label)}</span></label>`).join("");
+  const cur = (document.querySelector('input[name="tpl"]:checked') || { value: "classic" }).value;
+  const st = Object.assign({}, DATA.settings, { _designs: designMap() });
+  $("tplPicker").innerHTML = allLayouts().map(t =>
+    `<label class="tpl" data-cat="${t.cat}"><input type="radio" name="tpl" value="${esc(t.id)}"${t.id === cur ? " checked" : ""}>` +
+    `<span><div class="thumb" aria-hidden="true"><div>${S.render(Object.assign({}, sample, { template: t.id }), st)}</div></div>${esc(t.label)}</span></label>`).join("");
+  if (!document.querySelector('input[name="tpl"]:checked')) document.querySelector('input[name="tpl"][value="classic"]').checked = true;
 }
 function fillBranchSelects() {
   const opts = DATA.branches.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
@@ -664,6 +758,7 @@ function formPerson() {
 function formCompany() { const o = {}; FIELDS.forEach(f => (o[f.key] = $("c_" + f.key).value.trim())); return o; }
 function previewSettings() {
   const s = inheritedSettings(), c = formCompany();
+  s._designs = designMap();
   Object.keys(c).forEach(k => { if (c[k] !== "") s[k] = c[k]; });
   return s;
 }
@@ -713,13 +808,13 @@ function drawIconStrip(s, iconData) {
     ? (used.length ? "" : "Sample icons shown. ") + (low(s.icon_style) === "official" ? "Current official logos. " : "") + "Published to your GitHub site automatically when you save."
     : "Using icons from your own icon folder.";
 }
-function writeFrame(sigHtml) {
-  const f = $("previewFrame");
+function writeFrame(sigHtml, frameId) {
+  const f = $(frameId || "previewFrame");
   f.srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:14px 16px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222;}p{margin:0 0 14px}</style></head>` +
     `<body><p>Hi Arun,</p><p>Please find the updated proposal attached. Let me know if you have any questions.</p><p>Regards,</p>${sigHtml}` +
-    `<script>function h(){parent.postMessage({sigH:document.documentElement.scrollHeight},"*")}new ResizeObserver(h).observe(document.body);addEventListener("load",h);<\/script></body></html>`;
+    `<script>function h(){parent.postMessage({sigH:document.documentElement.scrollHeight,frame:"${frameId || "previewFrame"}"},"*")}new ResizeObserver(h).observe(document.body);addEventListener("load",h);<\/script></body></html>`;
 }
-addEventListener("message", e => { if (e.data && e.data.sigH) $("previewFrame").style.height = (e.data.sigH + 4) + "px"; });
+addEventListener("message", e => { if (e.data && e.data.sigH && $(e.data.frame || "previewFrame")) $(e.data.frame || "previewFrame").style.height = (e.data.sigH + 4) + "px"; });
 
 function newForm() {
   editing = null;
@@ -791,6 +886,353 @@ async function sendTest(btn) {
   busy(btn, false);
 }
 
+/* ---------- DESIGN STUDIO ---------- */
+let DS = null, dsSel = null, dsHist = [], dsDrag = null, dsBuilt = false, dsDirty = false;
+const clone = o => JSON.parse(JSON.stringify(o));
+const B = S.BLOCKS;
+function dsNew(starter) {
+  const st = clone(starter || S.STARTERS[0]);
+  DS = { id: "", name: starter && starter.name !== "Blank" ? "My " + starter.name.toLowerCase() : "", width: 520, rows: st.rows };
+  dsNormalize(); dsSel = null; dsHist = []; dsDirty = false; dsRenderAll();
+}
+function dsNormalize() {
+  DS.rows.forEach(r => { r.cols = r.cols || []; r.cols.forEach(c => { c.blocks = c.blocks || []; c.w = +c.w || Math.round(100 / r.cols.length); }); });
+}
+function dsPush() { dsHist.push(JSON.stringify(DS)); if (dsHist.length > 50) dsHist.shift(); dsDirty = true; }
+function dsUndo() { if (!dsHist.length) return; DS = JSON.parse(dsHist.pop()); dsSel = null; dsRenderAll(); }
+function dsOpen() {
+  if (!dsBuilt) {
+    dsBuilt = true;
+    $("dsPalette").innerHTML = Object.keys(B).map(t => `<button type="button" draggable="true" data-new="${t}">${esc(B[t].label)}</button>`).join("");
+    $("dsStarters").innerHTML = S.STARTERS.map((st, i) => `<button type="button" class="btn sm starter" data-starter="${i}">${esc(st.name)}</button>`).join("");
+    dsWire();
+  }
+  dsFillPick();
+  if (!DS) dsNew(S.STARTERS[0]); else dsRenderAll();
+}
+function dsFillPick() {
+  $("dsPick").innerHTML = `<option value="">+ New design</option>` + (DATA.designs || []).map(d => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join("");
+  $("dsPick").value = DS && DS.id ? DS.id : "";
+}
+function dsSample() {
+  const f = formPerson(), base = { name: "Ritika Deshmukh", designation: "Business Development Manager", email: "ritika@caps.in", mobile: "+91-99527 43311", office: "" };
+  const x = $("dsExtras").checked;
+  return Object.assign(base, f.name ? { name: f.name, designation: f.designation || base.designation, email: f.email || base.email, mobile: f.mobile || base.mobile, photo: f.photo } : {},
+    { template: "custom:__draft", social: true, banner: x, disclaimer: x, extras: false, badges: false });
+}
+function dsSettings() { const s = previewSettings(); s._designs = Object.assign(designMap(), { __draft: DS }); return s; }
+let dsSeq = 0, dsPrevTimer = null;
+async function dsRenderAll() { dsRenderCanvas(); dsRenderProps(); dsPreviewSoon(); }
+async function dsRenderCanvas() {
+  const seq = ++dsSeq, s = dsSettings(), p = dsSample();
+  let iconData = null;
+  if (usesCustomIcons(s)) { try { iconData = await iconSet(s); } catch (e) {} if (seq !== dsSeq) return; }
+  lastIconData = iconData;
+  if (document.activeElement !== $("dsName")) $("dsName").value = DS.name || "";
+  $("dsWidth").value = DS.width; $("dsWidthVal").textContent = DS.width + "px";
+  const cv = $("dsCanvas"); cv.style.width = (DS.width + 20) + "px";
+  cv.innerHTML = DS.rows.map((r, ri) => {
+    const selRow = dsSel && dsSel.kind === "row" && dsSel.r === ri;
+    const cols = r.cols.map((c, ci) => {
+      const selCol = dsSel && dsSel.kind === "col" && dsSel.r === ri && dsSel.c === ci;
+      const blocks = c.blocks.map((b, bi) => {
+        const sel = dsSel && dsSel.kind === "block" && dsSel.r === ri && dsSel.c === ci && dsSel.b === bi;
+        const prev = S.blockPreview(p, s, b, c.align || "left", { iconData }) || `<div class="cv-empty">${esc(B[b.type].label)} (no data yet)</div>`;
+        return `<div class="cv-blk${sel ? " sel" : ""}" draggable="true" data-r="${ri}" data-c="${ci}" data-b="${bi}"><span class="cv-tag">${esc(B[b.type].label)}</span>${prev}<span class="cv-h" data-r="${ri}" data-c="${ci}" data-b="${bi}" title="Drag to resize"></span></div>`;
+      }).join("") || `<div class="cv-empty">Drop blocks here</div>`;
+      const bg = S.hex(c.bg, "");
+      return `<div class="cv-col${selCol ? " sel" : ""}" data-r="${ri}" data-c="${ci}" style="flex:${c.w} 1 0;text-align:${c.align || "left"};padding:${Math.max(4, +c.pad || 0)}px;${bg ? "background:" + bg : ""}">${blocks}</div>` +
+        (ci < r.cols.length - 1 ? (r.divider ? `<div class="cv-div" style="background:${r.divColor && S.hex(r.divColor, "") ? r.divColor : "var(--brand)"}"></div>` : "") + `<div class="cv-rz" data-r="${ri}" data-c="${ci}" title="Drag to resize columns"></div>` : "");
+    }).join("");
+    const rbg = S.hex(r.bg, "");
+    return `<div class="cv-row${selRow ? " sel" : ""}" data-r="${ri}">
+      <div class="cv-rbar"><b>Row ${ri + 1}</b><span class="grow"></span>
+        <button type="button" data-ract="sel" data-r="${ri}">Row settings</button><button type="button" data-ract="up" data-r="${ri}" title="Move up">&uarr;</button><button type="button" data-ract="down" data-r="${ri}" title="Move down">&darr;</button>
+        <button type="button" data-ract="addcol" data-r="${ri}">+ Column</button><button type="button" data-ract="del" data-r="${ri}">Delete row</button></div>
+      <div class="cv-cols" style="padding:${+r.pad || 0}px;${rbg ? "background:" + rbg : ""}">${cols}</div></div>`;
+  }).join("") || `<div class="cv-empty">Add a row to start.</div>`;
+}
+function dsPreviewSoon() {
+  clearTimeout(dsPrevTimer);
+  dsPrevTimer = setTimeout(async () => {
+    const s = dsSettings(); let iconData = null;
+    if (usesCustomIcons(s)) { try { iconData = await iconSet(s); } catch (e) {} }
+    let html = S.render(dsSample(), s, { iconData });
+    Object.keys(localImages).forEach(u => { html = html.split(esc(u)).join(localImages[u]); });
+    writeFrame(html, "dsFrame");
+  }, 120);
+}
+function dsGet(sel) {
+  if (!sel) return null;
+  const r = DS.rows[sel.r]; if (!r) return null;
+  if (sel.kind === "row") return r;
+  const c = r.cols[sel.c]; if (!c) return null;
+  return sel.kind === "col" ? c : c.blocks[sel.b];
+}
+function rangeRow(label, key, obj, min, max, step, unit) {
+  return `<div class="prow"><label class="lb">${label}: <b data-val="${key}">${obj[key] ?? min}${unit || ""}</b></label><input type="range" min="${min}" max="${max}" step="${step || 1}" value="${obj[key] ?? min}" data-prop="${key}" data-unit="${unit || ""}"></div>`;
+}
+function colourRow(label, key, obj, allowNone) {
+  const v = obj[key] || "", named = ["text", "accent", "label", "white"];
+  const opts = (allowNone ? [["", "None"]] : []).concat([["text", "Text colour"], ["accent", "Accent colour"], ["label", "Label colour"], ["white", "White"], ["custom", "Custom…"]]);
+  const cur = !v ? "" : named.includes(v) ? v : "custom";
+  return `<div class="prow"><label class="lb">${label}</label><div class="inrow"><select data-colsel="${key}">${opts.map(([k, l]) => `<option value="${k}"${k === cur ? " selected" : ""}>${l}</option>`).join("")}</select>` +
+    `<input type="color" class="cpick${cur === "custom" ? "" : " hidden"}" data-colpick="${key}" value="${hex6(cur === "custom" ? v : "#477ccc")}"></div></div>`;
+}
+function segRow(label, key, obj, opts) {
+  return `<div class="prow"><label class="lb">${label}</label><div class="seg3">${opts.map(([k, l]) => `<button type="button" data-seg="${key}" data-v="${k}" aria-pressed="${(obj[key] || opts[0][0]) === k}">${l}</button>`).join("")}</div></div>`;
+}
+function dsRenderProps() {
+  const t = $("dsPropTitle"), box = $("dsProps"), o = dsGet(dsSel);
+  if (!o) {
+    dsSel = null; t.textContent = "Design";
+    box.innerHTML = `<p class="sub" style="margin-top:0">Click a block, a column or "Row settings" on the canvas to change it.</p>` + rangeRow("Overall width", "width", DS, 360, 640, 10, "px") +
+      `<div class="note">Tip: designs are built from rows and columns because that's what every email program displays reliably. What you see here is what arrives in the inbox.</div>`;
+    return;
+  }
+  if (dsSel.kind === "block") {
+    const d = B[o.type]; t.textContent = d.label;
+    if (o.size == null) o.size = d.def;
+    let h = rangeRow("Size", "size", o, d.min, d.max, 1, "px");
+    if (d.text || o.type === "divider" || o.type === "button") h += colourRow(o.type === "button" ? "Button colour" : "Colour", "color", o);
+    if (d.text) h += `<div class="prow"><label class="check"><input type="checkbox" data-bool="bold" ${(o.bold ?? d.bold) ? "checked" : ""}> Bold</label><label class="check"><input type="checkbox" data-bool="italic" ${(o.italic ?? d.italic) ? "checked" : ""}> Italic</label></div>`;
+    if (o.type === "text") h += `<div class="prow"><label class="lb">Text</label><textarea data-text="text" style="min-height:70px">${esc(o.text || "")}</textarea></div>`;
+    if (o.type === "contacts") h += segRow("Arrange", "style", o, [["list", "List"], ["inline", "One line"]]) + segRow("Labels", "labels", o, [["", "Default"], ["text", "Words"], ["letters", "Letters"], ["none", "None"]]) +
+      (o.style === "inline" ? segRow("Separator", "sep", o, [["", "Default"], ["|", "|"], ["/", "/"], ["none", "Space"]]) : "");
+    if (o.type === "photo") h += segRow("Shape", "shape", o, [["round", "Round"], ["square", "Rounded square"]]);
+    if (o.type === "divider") h += rangeRow("Thickness", "thick", Object.assign({ thick: 2 }, o), 1, 8, 1, "px");
+    if (o.type !== "spacer") h += rangeRow("Space below", "gap", Object.assign({ gap: 4 }, o), 0, 30, 1, "px");
+    if (["tagline", "button"].includes(o.type)) h += `<div class="hint">The ${o.type === "tagline" ? "tagline text" : "button text and link"} come from the Extras section.</div>`;
+    if (o.type === "logo") h += `<div class="hint">The logo image comes from Details > Logo.</div>`;
+    h += `<div class="pbtns"><button type="button" class="btn sm" data-bact="up">Move up</button><button type="button" class="btn sm" data-bact="down">Move down</button><button type="button" class="btn sm" data-bact="dup">Duplicate</button><button type="button" class="btn sm" data-bact="del">Delete</button></div>`;
+    box.innerHTML = h;
+  } else if (dsSel.kind === "col") {
+    const r = DS.rows[dsSel.r], sum = r.cols.reduce((a, c) => a + c.w, 0);
+    t.textContent = `Column ${dsSel.c + 1} of row ${dsSel.r + 1}`;
+    box.innerHTML = `<div class="prow"><label class="lb">Width: <b>${Math.round(o.w / sum * 100)}%</b></label><div class="hint">Drag the bar between columns on the canvas to change it.</div></div>` +
+      segRow("Horizontal alignment", "align", o, [["left", "Left"], ["center", "Centre"], ["right", "Right"]]) +
+      segRow("Vertical alignment", "valign", o, [["top", "Top"], ["middle", "Middle"], ["bottom", "Bottom"]]) +
+      rangeRow("Inner padding", "pad", Object.assign({ pad: 0 }, o), 0, 30, 1, "px") + colourRow("Background", "bg", o, true) +
+      `<div class="pbtns"><button type="button" class="btn sm" data-cact="left">Move left</button><button type="button" class="btn sm" data-cact="right">Move right</button><button type="button" class="btn sm" data-cact="del">Remove column</button></div>`;
+  } else {
+    t.textContent = `Row ${dsSel.r + 1}`;
+    box.innerHTML = rangeRow("Space below row", "gap", Object.assign({ gap: 8 }, o), 0, 30, 1, "px") + rangeRow("Row padding", "pad", Object.assign({ pad: 0 }, o), 0, 30, 1, "px") +
+      colourRow("Row background", "bg", o, true) +
+      `<div class="prow"><label class="check"><input type="checkbox" data-bool="divider" ${o.divider ? "checked" : ""}> Vertical line between columns</label></div>` +
+      (o.divider ? colourRow("Line colour", "divColor", Object.assign({ divColor: "accent" }, o)) : "") +
+      `<div class="pbtns"><button type="button" class="btn sm" data-ract="addcol" data-r="${dsSel.r}">+ Column</button><button type="button" class="btn sm" data-ract="up" data-r="${dsSel.r}">Move up</button><button type="button" class="btn sm" data-ract="down" data-r="${dsSel.r}">Move down</button><button type="button" class="btn sm" data-ract="del" data-r="${dsSel.r}">Delete row</button></div>`;
+  }
+}
+function dsChanged(skipProps) { dsRenderCanvas(); if (!skipProps) dsRenderProps(); dsPreviewSoon(); }
+function dsIndexAt(colEl, y) {
+  const kids = [...colEl.querySelectorAll(":scope > .cv-blk")];
+  for (let i = 0; i < kids.length; i++) { const r = kids[i].getBoundingClientRect(); if (y < r.top + r.height / 2) return i; }
+  return kids.length;
+}
+function dsAddBlock(type, r, c, at) {
+  const b = { type, size: B[type].def }; if (type === "text") b.text = "Your text here";
+  const col = DS.rows[r].cols[c]; col.blocks.splice(at == null ? col.blocks.length : at, 0, b);
+  dsSel = { kind: "block", r, c, b: at == null ? col.blocks.length - 1 : at };
+}
+function dsWire() {
+  // palette: click adds to the selected column (or the last column)
+  $("dsPalette").addEventListener("click", e => {
+    const b = e.target.closest("[data-new]"); if (!b) return;
+    dsPush();
+    let r, c;
+    if (dsSel && dsSel.kind !== "row") { r = dsSel.r; c = dsSel.c; } else if (dsSel) { r = dsSel.r; c = 0; } else { r = DS.rows.length - 1; c = DS.rows[r].cols.length - 1; }
+    dsAddBlock(b.dataset.new, r, c, dsSel && dsSel.kind === "block" ? dsSel.b + 1 : null); dsChanged();
+  });
+  $("dsPalette").addEventListener("dragstart", e => { const b = e.target.closest("[data-new]"); if (!b) return; dsDrag = { kind: "new", type: b.dataset.new }; e.dataTransfer.setData("text/plain", "new"); e.dataTransfer.effectAllowed = "copy"; });
+  $("dsStarters").addEventListener("click", e => {
+    const b = e.target.closest("[data-starter]"); if (!b) return;
+    if (dsDirty && !confirm("Replace the current canvas with this starting layout?")) return;
+    const keep = DS && DS.id ? { id: DS.id, name: DS.name } : null;
+    dsNew(S.STARTERS[+b.dataset.starter]); if (keep) Object.assign(DS, keep); dsRenderAll();
+  });
+  const cv = $("dsCanvas");
+  cv.addEventListener("click", e => {
+    const ra = e.target.closest("[data-ract]");
+    if (ra) {
+      const r = +ra.dataset.r, act = ra.dataset.ract;
+      if (act === "sel") { dsSel = { kind: "row", r }; dsChanged(); return; }
+      dsPush();
+      if (act === "up" && r > 0) { [DS.rows[r - 1], DS.rows[r]] = [DS.rows[r], DS.rows[r - 1]]; dsSel = { kind: "row", r: r - 1 }; }
+      if (act === "down" && r < DS.rows.length - 1) { [DS.rows[r + 1], DS.rows[r]] = [DS.rows[r], DS.rows[r + 1]]; dsSel = { kind: "row", r: r + 1 }; }
+      if (act === "addcol" && DS.rows[r].cols.length < 4) { DS.rows[r].cols.push({ w: Math.round(100 / (DS.rows[r].cols.length + 1)), blocks: [] }); dsSel = { kind: "col", r, c: DS.rows[r].cols.length - 1 }; }
+      if (act === "del") { if (DS.rows.length === 1) { dsHist.pop(); return say("studioMsg", "A design needs at least one row.", "err"); } DS.rows.splice(r, 1); dsSel = null; }
+      dsChanged(); return;
+    }
+    const blk = e.target.closest(".cv-blk");
+    if (blk) { dsSel = { kind: "block", r: +blk.dataset.r, c: +blk.dataset.c, b: +blk.dataset.b }; dsChanged(); return; }
+    const col = e.target.closest(".cv-col");
+    if (col) { dsSel = { kind: "col", r: +col.dataset.r, c: +col.dataset.c }; dsChanged(); }
+  });
+  // drag & drop of blocks
+  cv.addEventListener("dragstart", e => {
+    const blk = e.target.closest(".cv-blk"); if (!blk) return;
+    dsDrag = { kind: "move", r: +blk.dataset.r, c: +blk.dataset.c, b: +blk.dataset.b };
+    e.dataTransfer.setData("text/plain", "move"); e.dataTransfer.effectAllowed = "move";
+    setTimeout(() => blk.classList.add("dragging"), 0);
+  });
+  cv.addEventListener("dragend", () => { dsDrag = null; cv.querySelectorAll(".cv-ind").forEach(x => x.remove()); cv.querySelectorAll(".over").forEach(x => x.classList.remove("over")); cv.querySelectorAll(".dragging").forEach(x => x.classList.remove("dragging")); });
+  cv.addEventListener("dragover", e => {
+    const col = e.target.closest(".cv-col"); if (!col || !dsDrag) return;
+    e.preventDefault();
+    cv.querySelectorAll(".cv-ind").forEach(x => x.remove()); cv.querySelectorAll(".over").forEach(x => x.classList.remove("over"));
+    col.classList.add("over");
+    const at = dsIndexAt(col, e.clientY), kids = col.querySelectorAll(":scope > .cv-blk"), ind = document.createElement("div"); ind.className = "cv-ind";
+    if (kids[at]) col.insertBefore(ind, kids[at]); else col.appendChild(ind);
+  });
+  cv.addEventListener("drop", e => {
+    const col = e.target.closest(".cv-col"); if (!col || !dsDrag) return;
+    e.preventDefault();
+    const r = +col.dataset.r, c = +col.dataset.c; let at = dsIndexAt(col, e.clientY);
+    dsPush();
+    if (dsDrag.kind === "new") dsAddBlock(dsDrag.type, r, c, at);
+    else {
+      const from = DS.rows[dsDrag.r].cols[dsDrag.c], blk = from.blocks.splice(dsDrag.b, 1)[0];
+      if (dsDrag.r === r && dsDrag.c === c && dsDrag.b < at) at--;
+      DS.rows[r].cols[c].blocks.splice(at, 0, blk); dsSel = { kind: "block", r, c, b: at };
+    }
+    dsDrag = null; dsChanged();
+  });
+  // resize: columns (bar between columns) and blocks (corner handle)
+  cv.addEventListener("pointerdown", e => {
+    const rz = e.target.closest(".cv-rz"), h = e.target.closest(".cv-h");
+    if (!rz && !h) return;
+    e.preventDefault(); e.stopPropagation();
+    dsPush();
+    const startX = e.clientX, startY = e.clientY, el = rz || h;
+    el.setPointerCapture(e.pointerId);
+    let move;
+    if (rz) {
+      rz.classList.add("active");
+      const r = DS.rows[+rz.dataset.r], c = +rz.dataset.c, a = r.cols[c], b = r.cols[c + 1];
+      const total = r.cols.reduce((s2, x) => s2 + x.w, 0), rowPx = rz.parentElement.getBoundingClientRect().width;
+      const a0 = a.w, b0 = b.w, pair = a0 + b0, min = total * 0.1;
+      move = ev => {
+        const d = (ev.clientX - startX) / rowPx * total;
+        a.w = Math.round(Math.min(pair - min, Math.max(min, a0 + d)) * 10) / 10; b.w = Math.round((pair - a.w) * 10) / 10;
+        rz.parentElement.children[[...rz.parentElement.children].indexOf(rz) - (r.divider ? 2 : 1)].style.flex = a.w + " 1 0";
+        rz.parentElement.children[[...rz.parentElement.children].indexOf(rz) + 1].style.flex = b.w + " 1 0";
+        dsPreviewSoon();
+      };
+    } else {
+      const blk = DS.rows[+h.dataset.r].cols[+h.dataset.c].blocks[+h.dataset.b], d = B[blk.type], s0 = +blk.size || d.def;
+      const perPx = ["logo", "photo", "divider"].includes(blk.type) ? 1 : blk.type === "spacer" ? 0.5 : blk.type === "social" ? 0.15 : 0.08;
+      const tag = document.createElement("span"); tag.className = "cv-size"; h.parentElement.appendChild(tag);
+      move = ev => {
+        const dist = blk.type === "spacer" ? (ev.clientY - startY) * 2 : (ev.clientX - startX) + (ev.clientY - startY) * 0.3;
+        blk.size = Math.round(Math.min(d.max, Math.max(d.min, s0 + dist * perPx)));
+        tag.textContent = blk.size + " " + d.unit;
+        clearTimeout(move.t); move.t = setTimeout(() => dsRefreshBlock(h, blk), 30);
+        dsPreviewSoon();
+      };
+    }
+    const up = () => { el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.classList.remove("active"); dsChanged(); };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up);
+  });
+  // properties panel
+  const pr = $("dsProps");
+  let pushed = false;
+  pr.addEventListener("focusin", () => { if (!pushed) { dsPush(); pushed = true; } });
+  pr.addEventListener("focusout", () => { pushed = false; });
+  pr.addEventListener("input", e => {
+    const t = e.target, o = dsSel ? dsGet(dsSel) : DS;
+    if (!o) return;
+    if (t.dataset.prop) { o[t.dataset.prop] = +t.value; const v = pr.querySelector(`[data-val="${t.dataset.prop}"]`); if (v) v.textContent = t.value + (t.dataset.unit || ""); dsChanged(true); }
+    if (t.dataset.text) { o[t.dataset.text] = t.value; dsChanged(true); }
+    if (t.dataset.colpick) { o[t.dataset.colpick] = t.value; dsChanged(true); }
+  });
+  pr.addEventListener("change", e => {
+    const t = e.target, o = dsSel ? dsGet(dsSel) : DS; if (!o) return;
+    if (t.dataset.bool) { dsPush(); o[t.dataset.bool] = t.checked; dsChanged(); }
+    if (t.dataset.colsel) { dsPush(); const k = t.dataset.colsel; o[k] = t.value === "custom" ? pr.querySelector(`[data-colpick="${k}"]`).value : t.value; if (!o[k]) delete o[k]; dsChanged(); }
+  });
+  pr.addEventListener("click", e => {
+    const sg = e.target.closest("[data-seg]"), ba = e.target.closest("[data-bact]"), ca = e.target.closest("[data-cact]"), ra = e.target.closest("[data-ract]");
+    if (ra) { cv.querySelector(`[data-ract="${ra.dataset.ract}"][data-r="${ra.dataset.r}"]`).click(); return; }
+    const o = dsGet(dsSel); if (!o) return;
+    if (sg) { dsPush(); o[sg.dataset.seg] = sg.dataset.v; if (!o[sg.dataset.seg]) delete o[sg.dataset.seg]; dsChanged(); }
+    if (ba) {
+      dsPush(); const col = DS.rows[dsSel.r].cols[dsSel.c], i = dsSel.b;
+      if (ba.dataset.bact === "up" && i > 0) { [col.blocks[i - 1], col.blocks[i]] = [col.blocks[i], col.blocks[i - 1]]; dsSel.b--; }
+      if (ba.dataset.bact === "down" && i < col.blocks.length - 1) { [col.blocks[i + 1], col.blocks[i]] = [col.blocks[i], col.blocks[i + 1]]; dsSel.b++; }
+      if (ba.dataset.bact === "dup") { col.blocks.splice(i + 1, 0, clone(col.blocks[i])); dsSel.b++; }
+      if (ba.dataset.bact === "del") { col.blocks.splice(i, 1); dsSel = { kind: "col", r: dsSel.r, c: dsSel.c }; }
+      dsChanged();
+    }
+    if (ca) {
+      dsPush(); const r = DS.rows[dsSel.r], c = dsSel.c;
+      if (ca.dataset.cact === "left" && c > 0) { [r.cols[c - 1], r.cols[c]] = [r.cols[c], r.cols[c - 1]]; dsSel.c--; }
+      if (ca.dataset.cact === "right" && c < r.cols.length - 1) { [r.cols[c + 1], r.cols[c]] = [r.cols[c], r.cols[c + 1]]; dsSel.c++; }
+      if (ca.dataset.cact === "del") { if (r.cols.length === 1) { dsHist.pop(); return say("studioMsg", "A row needs at least one column. Delete the row instead.", "err"); } r.cols.splice(c, 1); dsSel = { kind: "row", r: dsSel.r }; }
+      dsChanged();
+    }
+  });
+  document.querySelectorAll("[data-addrow]").forEach(b => b.addEventListener("click", () => {
+    dsPush(); const n = +b.dataset.addrow;
+    DS.rows.push({ gap: 8, cols: Array.from({ length: n }, () => ({ w: Math.round(100 / n), blocks: [] })) });
+    dsSel = { kind: "col", r: DS.rows.length - 1, c: 0 }; dsChanged();
+  }));
+  $("dsWidth").addEventListener("input", e => { if (!dsHist.length || dsHist[dsHist.length - 1] !== JSON.stringify(DS)) dsPush(); DS.width = +e.target.value; dsChanged(true); });
+  $("dsName").addEventListener("input", e => { DS.name = e.target.value; dsDirty = true; });
+  $("dsExtras").addEventListener("change", dsRenderAll);
+  $("dsUndo").addEventListener("click", dsUndo);
+  document.addEventListener("keydown", e => {
+    if ($("page-studio").classList.contains("hidden")) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); dsUndo(); }
+    if ((e.key === "Delete" || e.key === "Backspace") && dsSel && dsSel.kind === "block" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $("dsProps").querySelector('[data-bact="del"]').click(); }
+  });
+  $("dsPick").addEventListener("change", e => {
+    if (dsDirty && !confirm("Discard unsaved changes to this design?")) { e.target.value = DS.id || ""; return; }
+    const d = (DATA.designs || []).find(x => x.id === e.target.value);
+    if (d) { DS = clone(d); dsNormalize(); dsSel = null; dsHist = []; dsDirty = false; dsRenderAll(); } else dsNew(S.STARTERS[0]);
+  });
+  $("dsSave").addEventListener("click", async e => {
+    if (!DS.name || !DS.name.trim()) { $("dsName").focus(); return say("studioMsg", "Give the design a name first.", "err"); }
+    const btn = e.currentTarget; busy(btn, true); say("studioMsg", "Saving design…");
+    try {
+      if (DEMO_MODE) { DS.id = DS.id || "demo" + Date.now().toString(36); DATA.designs = (DATA.designs || []).filter(x => x.id !== DS.id).concat([clone(DS)]); say("studioMsg", "Saved (demo only).", "ok"); }
+      else { const d = await api("saveDesign", { design: DS }); DS.id = d.id; await refresh(); say("studioMsg", d.message, "ok"); }
+      dsDirty = false; dsFillPick(); buildPicker();
+    } catch (err) { say("studioMsg", err.message, "err"); }
+    busy(btn, false);
+  });
+  $("dsDelete").addEventListener("click", async e => {
+    if (!DS.id) { dsNew(S.STARTERS[0]); return; }
+    if (!confirm(`Delete the design "${DS.name}"?`)) return;
+    const btn = e.currentTarget; busy(btn, true);
+    try {
+      if (!DEMO_MODE) { const d = await api("deleteDesign", { id: DS.id }); await refresh(); say("studioMsg", d.message, "ok"); }
+      else DATA.designs = (DATA.designs || []).filter(x => x.id !== DS.id);
+      DS = null; dsFillPick(); buildPicker(); dsNew(S.STARTERS[0]);
+    } catch (err) { say("studioMsg", err.message, "err"); }
+    busy(btn, false);
+  });
+  $("dsUse").addEventListener("click", () => {
+    if (!DS.id || dsDirty) return say("studioMsg", "Save the design first.", "err");
+    buildPicker();
+    const radio = document.querySelector(`input[name="tpl"][value="custom:${DS.id}"]`);
+    if (radio) { radio.checked = true; }
+    showPage("create");
+    document.querySelector('#rail button[data-pane="style"]').click();
+    document.querySelector('#tplCats button[data-cat="mine"]').click();
+    onEditorChange();
+    say("createMsg", `Layout set to "${DS.name}". Fill in or pick the person, then save.`, "ok");
+  });
+}
+/* while resizing, redraw just this block (keeps the handle and its pointer capture alive) */
+function dsRefreshBlock(handle, blk) {
+  const el = handle.parentElement, col = DS.rows[+handle.dataset.r].cols[+handle.dataset.c];
+  const html = S.blockPreview(dsSample(), dsSettings(), blk, col.align || "left", { iconData: lastIconData });
+  [...el.children].forEach(ch => { if (!ch.matches(".cv-tag,.cv-h,.cv-size")) ch.remove(); });
+  el.insertAdjacentHTML("beforeend", html || "");
+  el.appendChild(el.querySelector(".cv-h")); const tag = el.querySelector(".cv-size"); if (tag) el.appendChild(tag);
+}
+let lastIconData = null;
+
 /* ---------- PEOPLE ---------- */
 function shownPeople() {
   const q = low($("pSearch").value), b = $("pBranch").value;
@@ -801,7 +1243,7 @@ function shownPeople() {
 function renderPeople() {
   const list = shownPeople();
   $("btnResendShown").textContent = `Email everyone listed (${list.filter(p => low(p.status) !== "inactive").length})`;
-  const tplName = id => { const t = S.TEMPLATES.find(x => x.id === id) || S.TEMPLATES[0]; return t.label + ", " + (S.CATEGORIES.find(c => c[0] === t.cat) || ["", ""])[1]; };
+  const tplName = id => { const t = allLayouts().find(x => x.id === id) || S.TEMPLATES[0]; return t.label + ", " + (t.cat === "mine" ? "My designs" : (S.CATEGORIES.find(c => c[0] === t.cat) || ["", ""])[1]); };
   $("peopleBody").innerHTML = list.length ? list.map(p => {
     const inactive = low(p.status) === "inactive";
     const custom = DATA.overrides.filter(o => o.scope === "Person" && low(o.target) === p.email).length;
