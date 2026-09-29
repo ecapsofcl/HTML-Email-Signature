@@ -17,6 +17,7 @@ var SigTemplates = (function () {
   var FONT = 'font-family:' + DEFAULT_FONT + ';';
   var INK = '#212121', MUTE = '#6b6b6b', LINK = '#477ccc';
   var LABELMODE = '', SEPMODE = '', ICONDATA = null;
+  var MAX_W = 600, SW = 600;   // 600px = widest size every email program shows without scrolling
 
   var TABS = [['main', 'Details'], ['social', 'Social links'], ['icons', 'Icon design'], ['style', 'Layout & style'],
               ['banner', 'Banner'], ['extras', 'Extras'], ['badges', 'Badges'], ['disclaimer', 'Disclaimer']];
@@ -93,7 +94,7 @@ var SigTemplates = (function () {
 
     { key: 'banner_url',       label: 'Banner image',            tab: 'banner', type: 'url', upload: true, wide: true, hint: 'PNG, JPG or GIF up to 2 MB. For a sharp banner, upload it at twice the display width.' },
     { key: 'banner_link',      label: 'Banner link',             tab: 'banner', type: 'url', example: 'https://store.caps.in' },
-    { key: 'banner_width',     label: 'Display width (px)',      tab: 'banner', type: 'number', example: '450' },
+    { key: 'banner_width',     label: 'Display width (px)',      tab: 'banner', type: 'number', example: 'Empty = full signature width', hint: 'Leave empty to fill the signature width (600 px). Never wider than the signature.' },
 
     { key: 'app_apple',        label: 'Apple App Store link',    tab: 'extras', type: 'url', example: 'https://apps.apple.com/app/id000000000' },
     { key: 'app_google',       label: 'Google Play link',        tab: 'extras', type: 'url', example: 'https://play.google.com/store/apps/details?id=com.yourapp' },
@@ -114,6 +115,7 @@ var SigTemplates = (function () {
     { key: 'link_color',       label: 'Link colour',             tab: 'style', type: 'color' },
     { key: 'separator',        label: 'Separators',              tab: 'style', type: 'select', options: [['/', 'Slash  /'], ['|', 'Bar  |'], ['none', 'None']] },
     { key: 'phone_labels',     label: 'Contact labels',          tab: 'style', type: 'select', options: [['text', 'Words (Mobile:)'], ['letters', 'Letters (M)'], ['none', 'None']] },
+    { key: 'sig_width',        label: 'Signature width',         tab: 'style', type: 'select', options: [['600', '600 px (maximum, recommended)'], ['560', '560 px'], ['520', '520 px'], ['480', '480 px']] },
     { key: 'logo_width',       label: 'Logo width (px)',         tab: 'style', type: 'number' },
 
     { key: 'icon_style',       label: 'Icon design',             tab: 'icons', type: 'select', options: [['official', 'Official logos (full colour)'], ['custom', 'Custom (your shape and colours)']] },
@@ -172,8 +174,8 @@ var SigTemplates = (function () {
     if (w && !h) h = i.w ? Math.round(w * i.h / i.w) : 0;
     if (h && !w) w = i.h ? Math.round(h * i.w / i.h) : 0;
     return '<img src="' + esc(i.src) + '" alt="' + esc(alt || '') + '"' + (w ? ' width="' + w + '"' : '') + (h ? ' height="' + h + '"' : '') +
-      ' border="0" style="display:' + (extra && extra.inline ? 'inline-block' : 'block') + ';' + (w ? 'width:' + w + 'px;' : '') + (h ? 'height:' + h + 'px;' : 'height:auto;') +
-      'max-width:' + (w || 600) + 'px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;vertical-align:middle;">';
+      ' border="0" style="display:' + (extra && extra.inline ? 'inline-block' : 'block') + ';' + (w ? 'width:' + w + 'px;' : '') +
+      'max-width:100%;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;vertical-align:middle;">';
   }
   function link(href, inner) { return href ? '<a href="' + esc(href) + '" target="_blank" style="text-decoration:none;border:0;">' + inner + '</a>' : inner; }
 
@@ -317,8 +319,8 @@ var SigTemplates = (function () {
         (p.designation ? tr(esc(p.designation), txt(12, 16, '#ffffff')) : '')) + '</td></tr>' +
       '<tr><td style="padding:12px 16px;border-left:1px solid #e3e6eb;border-right:1px solid #e3e6eb;border-bottom:1px solid #e3e6eb;">' +
         tbl('<tr><td valign="top" style="padding:0;">' + tbl('<tr><td style="padding:0;">' + contactTable(p, s, 'text') + '</td></tr>' + (ic ? gapRow(8) + '<tr><td style="padding:0;">' + ic + '</td></tr>' : '')) + '</td>' +
-          (s.logo_url ? '<td valign="middle" align="right" width="120" style="width:120px;padding:0 0 0 12px;">' + logo(s, 110) + '</td>' : '') + '</tr>', 446) +
-      '</td></tr>', 480);
+          (s.logo_url ? '<td valign="middle" align="right" width="120" style="width:120px;padding:0 0 0 12px;">' + logo(s, 110) + '</td>' : '') + '</tr>', SW - 34) +
+      '</td></tr>', SW);
   }
 
   function tplMinimal(p, s, o) {
@@ -335,7 +337,7 @@ var SigTemplates = (function () {
       (p.designation ? tr(esc(p.designation), txt(12, 16, c, 'padding:0 0 8px 0;'), 'align="center"') : '') +
       '<tr><td align="center" style="padding:0 0 8px 0;">' + hline(c, 60, 2) + '</td></tr>' +
       tr(contactInline(p, s, 'none', '|'), txt(12, 18, INK), 'align="center"') +
-      (ic ? '<tr><td align="center" style="padding:8px 0 0 0;">' + ic + '</td></tr>' : ''), 480);
+      (ic ? '<tr><td align="center" style="padding:8px 0 0 0;">' + ic + '</td></tr>' : ''), SW);
   }
 
   function tplCard(p, s, o, c) {
@@ -343,12 +345,12 @@ var SigTemplates = (function () {
     return tbl(
       '<tr><td style="padding:16px 16px 12px 16px;border-top:1px solid #e3e6eb;border-left:1px solid #e3e6eb;border-right:1px solid #e3e6eb;">' +
         tbl('<tr><td valign="top" style="padding:0;">' + tbl(nameRow(p, 16) + titleRow(p, c, 10) + '<tr><td style="padding:0;">' + contactTable(p, s, 'text') + '</td></tr>') + '</td>' +
-          (s.logo_url ? '<td valign="top" align="right" width="120" style="width:120px;padding:0 0 0 12px;">' + logo(s, 110) + '</td>' : '') + '</tr>', 446) +
+          (s.logo_url ? '<td valign="top" align="right" width="120" style="width:120px;padding:0 0 0 12px;">' + logo(s, 110) + '</td>' : '') + '</tr>', SW - 34) +
       '</td></tr>' +
       '<tr><td style="padding:0 16px 12px 16px;border-left:1px solid #e3e6eb;border-right:1px solid #e3e6eb;">' + tbl(
         tr(esc(s.company_name), txt(10, 14, INK, 'font-weight:bold;')) + (locs ? tr(esc(locs), txt(10, 14, MUTE)) : '') +
         (ic ? gapRow(8) + '<tr><td style="padding:0;">' + ic + '</td></tr>' : '')) + '</td></tr>' +
-      '<tr><td height="4" bgcolor="' + c + '" style="height:4px;background-color:' + c + ';font-size:1px;line-height:1px;mso-line-height-rule:exactly;">&nbsp;</td></tr>', 480);
+      '<tr><td height="4" bgcolor="' + c + '" style="height:4px;background-color:' + c + ';font-size:1px;line-height:1px;mso-line-height-rule:exactly;">&nbsp;</td></tr>', SW);
   }
 
   function tplLogoTop(p, s, o, c) {
@@ -357,7 +359,7 @@ var SigTemplates = (function () {
       '<tr><td colspan="3" height="2" bgcolor="' + c + '" style="height:2px;background-color:' + c + ';font-size:1px;line-height:1px;mso-line-height-rule:exactly;">&nbsp;</td></tr>' +
       '<tr><td valign="top" width="220" style="width:220px;padding:10px 0 0 0;">' + tbl(nameRow(p, 16) + titleRow(p, c) +
         tr(esc(s.company_name), txt(12, 16, MUTE, 'padding:4px 0 0 0;')) + socialRow(s, o)) + '</td>' + spacerCell(16) +
-      '<td valign="top" style="padding:10px 0 0 0;">' + contactTable(p, s, 'text') + '</td></tr>', 480);
+      '<td valign="top" style="padding:10px 0 0 0;">' + contactTable(p, s, 'text') + '</td></tr>', SW);
   }
 
   function tplSplit(p, s, o, c) {
@@ -388,10 +390,10 @@ var SigTemplates = (function () {
     return tbl(
       '<tr><td valign="bottom" style="padding:0 0 8px 0;">' + tbl(nameRow(p, 18) + titleRow(p, c)) + '</td>' +
       '<td valign="bottom" align="right" style="padding:0 0 8px 0;">' + logo(s, 110) + '</td></tr>' +
-      fullRule('#dfe3ea', 480, 2) +
+      fullRule('#dfe3ea', SW, 2) +
       '<tr><td colspan="2" style="padding:8px 0;">' + twoCols(p, s) + '</td></tr>' +
       '<tr><td colspan="2" bgcolor="' + c + '" style="background-color:' + c + ';padding:6px 10px;' + txt(11, 15, '#ffffff') + '"><b>' + esc(s.company_name) + '</b>' + (locs ? '&nbsp;&nbsp;' + esc(locs) : '') + '</td></tr>' +
-      (ic ? '<tr><td colspan="2" style="padding:8px 0 0 0;">' + ic + '</td></tr>' : ''), 480);
+      (ic ? '<tr><td colspan="2" style="padding:8px 0 0 0;">' + ic + '</td></tr>' : ''), SW);
   }
   // Corporate: details with logo, coloured strip with company and website
   function tplBrandBar(p, s, o, c) {
@@ -400,15 +402,15 @@ var SigTemplates = (function () {
       '<tr><td valign="top" style="padding:0 0 10px 0;">' + tbl(nameRow(p, 16) + titleRow(p, c, 8) + '<tr><td style="padding:0;">' + contactTable(p, s, 'text') + '</td></tr>' + socialRow(s, o)) + '</td>' +
       '<td valign="top" align="right" width="130" style="width:130px;padding:0 0 10px 12px;">' + logo(s, 120) + '</td></tr>' +
       '<tr><td bgcolor="' + c + '" style="background-color:' + c + ';padding:8px 12px;' + txt(12, 16, '#ffffff', 'font-weight:bold;') + '">' + esc(s.company_name) + '</td>' +
-      '<td bgcolor="' + c + '" align="right" style="background-color:' + c + ';padding:8px 12px;' + txt(12, 16, '#ffffff') + '">' + (web ? '<a href="' + esc(s.website) + '" target="_blank" style="color:#ffffff;text-decoration:none;">' + esc(web) + '</a>' : '') + '</td></tr>', 480);
+      '<td bgcolor="' + c + '" align="right" style="background-color:' + c + ';padding:8px 12px;' + txt(12, 16, '#ffffff') + '">' + (web ? '<a href="' + esc(s.website) + '" target="_blank" style="color:#ffffff;text-decoration:none;">' + esc(web) + '</a>' : '') + '</td></tr>', SW);
   }
   // Corporate: light panel with accent edge
   function tplBoxed(p, s, o, c) {
     return tbl('<tr>' + vline(c, 4) + '<td bgcolor="#f5f7fa" style="background-color:#f5f7fa;padding:14px 16px;">' +
       tbl('<tr><td valign="top" style="padding:0;">' + tbl(nameRow(p, 16) + titleRow(p, c, 8) + '<tr><td style="padding:0;">' + contactTable(p, s, 'text') + '</td></tr>' +
         tr(esc(s.company_name), txt(12, 16, INK, 'font-weight:bold;padding:8px 0 0 0;')) + socialRow(s, o)) + '</td>' +
-        (s.logo_url ? '<td valign="top" align="right" style="padding:0 0 0 16px;">' + logo(s, 110) + '</td>' : '') + '</tr>', 440) +
-      '</td></tr>', 480);
+        (s.logo_url ? '<td valign="top" align="right" style="padding:0 0 0 16px;">' + logo(s, 110) + '</td>' : '') + '</tr>', SW - 40) +
+      '</td></tr>', SW);
   }
   // Professional: stacked, accent rule, logo and icons at the bottom
   function tplStacked(p, s, o, c) {
@@ -431,9 +433,9 @@ var SigTemplates = (function () {
     var ic = o.social ? socialIcons(s, 18) : '';
     return tbl('<tr><td valign="bottom" style="padding:0 0 6px 0;">' + tbl(nameRow(p, 16) + tr(esc([p.designation, s.company_name].filter(Boolean).join(', ')), txt(12, 16, c))) + '</td>' +
       '<td valign="bottom" align="right" style="padding:0 0 6px 0;">' + ic + '</td></tr>' +
-      '<tr><td colspan="2" style="padding:0;">' + hline(c, 480, 2) + '</td></tr>' +
+      '<tr><td colspan="2" style="padding:0;">' + hline(c, SW, 2) + '</td></tr>' +
       '<tr><td colspan="2" style="padding:8px 0 0 0;">' + twoCols(p, s) + '</td></tr>' +
-      (s.logo_url ? '<tr><td colspan="2" style="padding:10px 0 0 0;">' + logo(s, 100) + '</td></tr>' : ''), 480);
+      (s.logo_url ? '<tr><td colspan="2" style="padding:10px 0 0 0;">' + logo(s, 100) + '</td></tr>' : ''), SW);
   }
   // Personal: round photo on top, everything centred
   function tplPhotoCenter(p, s, o, c) {
@@ -443,7 +445,7 @@ var SigTemplates = (function () {
       (p.designation ? tr(esc(p.designation), txt(12, 16, c), 'align="center"') : '') +
       tr(esc(s.company_name), txt(12, 16, MUTE, 'padding:0 0 8px 0;'), 'align="center"') +
       tr(contactInline(p, s, 'none', '|'), txt(12, 18, INK), 'align="center"') +
-      (ic ? '<tr><td align="center" style="padding:10px 0 0 0;">' + ic + '</td></tr>' : ''), 480);
+      (ic ? '<tr><td align="center" style="padding:10px 0 0 0;">' + ic + '</td></tr>' : ''), SW);
   }
   // Personal: large photo, details beside it
   function tplPhotoLarge(p, s, o, c) {
@@ -481,7 +483,7 @@ var SigTemplates = (function () {
           (ic ? gapRow(12) + '<tr><td style="padding:0;">' + ic + '</td></tr>' : '')) + '</td>' +
       '<td valign="top" style="padding:14px;border-top:1px solid #e3e6eb;border-right:1px solid #e3e6eb;border-bottom:1px solid #e3e6eb;">' +
         tbl('<tr><td style="padding:0;">' + contactTable(p, s, 'text') + '</td></tr>' + tr(esc(s.company_name), txt(12, 16, INK, 'font-weight:bold;padding:8px 0 0 0;')) +
-          (s.logo_url ? '<tr><td style="padding:8px 0 0 0;">' + logo(s, 100) + '</td></tr>' : '')) + '</td></tr>', 480);
+          (s.logo_url ? '<tr><td style="padding:8px 0 0 0;">' + logo(s, 100) + '</td></tr>' : '')) + '</td></tr>', SW);
   }
   // Minimal: two lines of text
   function tplOneLine(p, s, o, c) {
@@ -513,12 +515,12 @@ var SigTemplates = (function () {
     locations: { label: 'Office locations', min: 9, max: 14,  def: 10,  unit: 'px text', text: true, color: 'label' },
     address:   { label: 'Address',         min: 9,  max: 15,  def: 11,  unit: 'px text', text: true, color: 'label' },
     social:    { label: 'Social icons',    min: 14, max: 40,  def: 20,  unit: 'px' },
-    divider:   { label: 'Line',            min: 16, max: 640, def: 60,  unit: 'px long (0 = full width)', color: 'accent' },
+    divider:   { label: 'Line',            min: 16, max: 600, def: 60,  unit: 'px long (0 = full width)', color: 'accent' },
     spacer:    { label: 'Space',           min: 2,  max: 60,  def: 10,  unit: 'px tall' },
     text:      { label: 'Custom text',     min: 9,  max: 24,  def: 12,  unit: 'px text', text: true, color: 'text' },
     tagline:   { label: 'Tagline',         min: 10, max: 18,  def: 12,  unit: 'px text', text: true, color: 'label', italic: true },
     button:    { label: 'Button',          min: 10, max: 18,  def: 12,  unit: 'px text' },
-    banner:    { label: 'Banner',          min: 120, max: 640, def: 0,  unit: 'px wide (0 = fit column)' }
+    banner:    { label: 'Banner',          min: 120, max: 600, def: 0,  unit: 'px wide (0 = fit column)' }
   };
   function clampN(v, lo, hi, d) { v = parseFloat(v); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); }
   function colorOf(v, c) {
@@ -533,9 +535,9 @@ var SigTemplates = (function () {
       : inner;
   }
   function blockRow(p, s, o, c, b, align, colW) {
-    colW = colW || 520;
+    colW = colW || SW;
     var def = BLOCKS[b.type]; if (!def) return '';
-    var sz = b.type === 'banner' || (b.type === 'divider' && +b.size === 0) ? Math.round(clampN(b.size, 0, 640, 0)) : Math.round(clampN(b.size, def.min, def.max, def.def));
+    var sz = b.type === 'banner' || (b.type === 'divider' && +b.size === 0) ? Math.round(clampN(b.size, 0, 600, 0)) : Math.round(clampN(b.size, def.min, def.max, def.def));
     var gap = Math.round(clampN(b.gap, 0, 40, b.type === 'spacer' ? 0 : 4));
     if (b.type === 'spacer') return gapRow(sz);
     var tdOpen = function (style) { return '<tr><td align="' + align + '" style="' + (style || '') + 'padding:0 0 ' + gap + 'px 0;text-align:' + align + ';">'; };
@@ -603,7 +605,7 @@ var SigTemplates = (function () {
   function designHas(d, type) {
     return (d.rows || []).some(function (r) { return (r.cols || []).some(function (c) { return (c.blocks || []).some(function (b) { return b.type === type; }); }); });
   }
-  function designWidth(d) { return Math.round(clampN(d && d.width, 360, 640, 520)); }
+  function designWidth(d) { return Math.round(clampN(d && d.width, 360, MAX_W, SW)); }
   function renderDesign(p, s, o, c, d) {
     var W = designWidth(d);
     var rows = (d.rows || []).map(function (r) {
@@ -727,12 +729,13 @@ var SigTemplates = (function () {
     LABELMODE = ['text', 'letters', 'none'].indexOf(lower(s.phone_labels)) >= 0 ? lower(s.phone_labels) : '';
     SEPMODE = ['/', '|', 'none'].indexOf(lower(s.separator)) >= 0 ? lower(s.separator) : '';
     ICONDATA = (extra && extra.iconData) || null;
+    SW = Math.round(clampN(s.sig_width, 400, MAX_W, MAX_W));
     return c;
   }
   /** One block on its own (used by the Design studio canvas) */
   function blockPreview(p, s, b, align, extra) {
     var c = applyStyle(s, extra), o = options(p);
-    var html = blockRow(p, s, o, c, b, align || 'left', (extra && extra.colW) || 520);
+    var html = blockRow(p, s, o, c, b, align || 'left', (extra && extra.colW) || SW);
     ICONDATA = null;
     return html ? tbl(html, 0, 'width:100%;') : '';
   }
@@ -744,16 +747,17 @@ var SigTemplates = (function () {
 
     var design = findDesign(p, s, extra);
     var body = design ? renderDesign(p, s, o, c, design) : LAYOUTS[o.template](p, s, o, c);
-    var bw = parseInt(s.banner_width, 10) || 450;
-    if (design) bw = Math.min(bw, designWidth(design));       // custom designs: banner never wider than the design
+    var sigW = design ? designWidth(design) : SW;
+    var bw = Math.min(parseInt(s.banner_width, 10) || sigW, sigW);   // empty = full width; never wider than the signature
     var showBanner = o.banner && s.banner_url && !(design && designHas(design, 'banner'));
     var banner = showBanner ? '<tr><td style="padding:14px 0 0 0;">' + link(s.banner_link, img(s.banner_url, bw, 0, s.company_name)) + '</td></tr>' : '';
-    var w = design ? designWidth(design) : Math.max(480, bw);
+    var w = sigW;
     var disc = o.disclaimer && s.disclaimer
       ? '<tr><td style="padding:14px 0 0 0;">' + tbl('<tr><td style="border-top:1px solid #dddddd;padding:10px 0 0 0;' + txt(9, 12, '#8a8a8a') + '">' + esc(s.disclaimer) + '</td></tr>', w) + '</td></tr>' : '';
 
-    var html = tbl('<tr><td align="left" style="padding:0;">' + body + '</td></tr>' +
-      (o.extras ? extrasBlock(s, c) : '') + banner + (o.badges ? badgesBlock(s) : '') + disc, w, FONT + '-webkit-text-size-adjust:none;-ms-text-size-adjust:none;');
+    var html = TB + 'width:' + w + 'px;max-width:100%;' + FONT + '-webkit-text-size-adjust:none;-ms-text-size-adjust:none;" width="' + w + '">' +
+      '<tr><td align="left" style="padding:0;">' + body + '</td></tr>' +
+      (o.extras ? extrasBlock(s, c) : '') + banner + (o.badges ? badgesBlock(s) : '') + disc + '</table>';
     ICONDATA = null;
     if (k !== 1) html = html.replace(/(font-size|line-height):(\d+)px/g, function (m, prop, n) {
       n = +n; return n <= 1 ? m : prop + ':' + Math.round(n * k) + 'px';
