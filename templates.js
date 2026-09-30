@@ -137,6 +137,8 @@ var SigTemplates = (function () {
     { key: 'badge4_link', label: 'Badge 4 link',  tab: 'badges', type: 'url' },
     { key: 'badge_height', label: 'Badge height (px)', tab: 'badges', type: 'number', example: '40' }
   ];
+  FIELDS.push({ key: 'social_show', label: 'Icons to show', tab: 'social', type: 'socialpick', wide: true,
+                hint: 'Tick the icons to include in the signature. Networks without a link are listed once you add their link below.' });
   SOCIAL.forEach(function (n) { FIELDS.push({ key: n[0], label: n[1], tab: 'social', type: 'url', example: n[2] }); });
 
   var TOGGLES = [
@@ -231,7 +233,12 @@ var SigTemplates = (function () {
   function socialIcons(s, size) {
     size = parseInt(s.icon_size, 10) || size;
     var gap = parseInt(s.icon_gap, 10); if (isNaN(gap)) gap = 6;
-    var base = iconBase(s), list = SOCIAL.filter(function (n) { return s[n[0]]; });
+    var show = String(s.social_show || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    var base = iconBase(s), list = SOCIAL.filter(function (n) {
+      if (!s[n[0]]) return false;                                        // no link, no icon
+      if (!show.length || show.indexOf('all') >= 0) return true;         // nothing chosen = every network with a link
+      return show.indexOf(n[0]) >= 0;                                    // only the ticked ones ('none' matches nothing)
+    });
     if (!list.length) return '';
     var cells = list.map(function (n, i) {
       var src = (ICONDATA && ICONDATA[n[0]]) || base + n[0] + '.png';
