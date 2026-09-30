@@ -171,11 +171,17 @@
   .prow input[type=range] { width:100%; }
   .pbtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
 
+  .picks { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .pick-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:14px; padding:4px 11px; font-size:12.5px; cursor:pointer; background:#fff; margin:0; font-weight:400; }
+  .pick-chip:has(input:checked) { border-color:var(--brand); background:var(--brand-soft); color:var(--brand-d); font-weight:500; }
+  .pick-tools { margin-left:4px; font-size:12px; }
+  .pick-tools button { border:0; background:none; color:var(--brand-d); text-decoration:underline; cursor:pointer; font-size:12px; padding:0 4px; }
+
   /* ---------- people ---------- */
   .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:end; padding:12px 14px; border-bottom:1px solid var(--line-2); }
   .toolbar > div { flex:1 1 180px; }
   table.list { width:100%; border-collapse:collapse; font-size:13.5px; }
-  table.list th { text-align:left; font-weight:600; font-size:12px; color:var(--muted); background:#f6f8fb; border-bottom:1px solid var(--line); padding:8px 12px; position:sticky; top:54px; }
+  table.list th { text-align:left; font-weight:600; font-size:12px; color:var(--muted); background:#f6f8fb; border-bottom:1px solid var(--line); padding:8px 12px; }
   table.list td { border-bottom:1px solid var(--line-2); padding:8px 12px; vertical-align:middle; }
   table.list tr:hover td { background:#fafbfd; }
   table.list tr.inactive td { color:#9aa3b2; }
@@ -250,6 +256,7 @@
         <div class="grow"></div>
         <span class="msg" id="createMsg" role="status"></span>
         <button type="button" class="btn" id="btnNew">New</button>
+        <button type="button" class="btn hidden" id="btnDup" title="New signature with the same layout and settings">Duplicate</button>
         <button type="button" class="btn" id="btnSaveOnly">Save</button>
         <button type="button" class="btn primary" id="btnSend">Save and email</button>
       </div>
@@ -498,6 +505,7 @@ function fieldControl(f, id, placeholder) {
       f.options.map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join("") + `</select>`;
   }
   const ph = esc(String(placeholder || f.example || "").replace(/#wh=\d+x\d+$/, ""));
+  if (t === "socialpick") return `<input type="hidden" id="${id}" data-inherit="${esc(placeholder || "")}"><div class="picks" data-pickfor="${id}"></div>`;
   if (t === "long") return `<textarea id="${id}" placeholder="${ph}"></textarea>`;
   if (t === "color") return `<div class="inrow"><input type="color" class="cpick" data-for="${id}" value="${hex6(placeholder || "#477ccc")}" title="Pick a colour" aria-label="Pick ${esc(f.label)}">` +
     `<input type="text" id="${id}" placeholder="${ph || "#477ccc"}" aria-label="${esc(f.label)} hex code"><button type="button" class="xbtn" data-clear="${id}" title="Use the default colour" aria-label="Reset ${esc(f.label)}">×</button></div>`;
@@ -522,6 +530,37 @@ function syncPickers(root) {
   });
 }
 document.addEventListener("input", e => { if (e.target.id === "fv") syncPickers($("fValueWrap")); });
+
+/* ---------- "Icons to show" picker ---------- */
+function pickNets(id) {
+  const bulk = id === "fv", s = bulk ? DATA.settings : previewSettings();
+  return S.SOCIAL.filter(n => bulk || String(s[n[0]] || "").trim());      // bulk: every network; editor: networks that have a link
+}
+function renderSocialPick(id) {
+  const box = document.querySelector(`[data-pickfor="${id}"]`), el = $(id); if (!box || !el) return;
+  const nets = pickNets(id);
+  const cur = String(el.value || (id === "fv" ? "" : el.dataset.inherit || "")).split(",").map(x => x.trim()).filter(Boolean);
+  const all = !cur.length || cur.includes("all");
+  box.innerHTML = nets.length
+    ? nets.map(n => `<label class="pick-chip"><input type="checkbox" value="${n[0]}" ${all || cur.includes(n[0]) ? "checked" : ""}> ${esc(n[1])}</label>`).join("") +
+      `<span class="pick-tools"><button type="button" class="link" data-pickset="${id}" data-v="all">Select all</button> <button type="button" class="link" data-pickset="${id}" data-v="none">Clear</button></span>`
+    : `<span class="sub">Add at least one profile link below, then tick it here.</span>`;
+}
+function setPick(id, value) { const el = $(id); el.value = value; el.dispatchEvent(new Event("input", { bubbles: true })); if (id === "fv") renderSocialPick("fv"); }
+document.addEventListener("change", e => {
+  const box = e.target.closest && e.target.closest("[data-pickfor]"); if (!box) return;
+  const id = box.dataset.pickfor, nets = pickNets(id);
+  const ticked = [...box.querySelectorAll("input:checked")].map(i => i.value);
+  let v;
+  if (ticked.length === nets.length) v = (id !== "fv" && $(id).dataset.inherit) ? "all" : "";   // everything = default ("all" if the general setting limits icons)
+  else v = ticked.length ? ticked.join(",") : "none";
+  setPick(id, v);
+}, true);   // capture: read the ticks before anything redraws the chips
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-pickset]"); if (!b) return;
+  const id = b.dataset.pickset;
+  setPick(id, b.dataset.v === "all" ? ((id !== "fv" && $(id).dataset.inherit) ? "all" : "") : "none");
+});
 
 /* ---------- image upload (to GitHub via Apps Script) ---------- */
 async function uploadInto(inputId, file) {
@@ -711,7 +750,7 @@ function buildEditor() {
     document.querySelectorAll(".edpane").forEach(p => p.classList.toggle("hidden", p.dataset.pane !== b.dataset.pane));
     $("paneTitle").textContent = b.textContent.trim();
   });
-  $("panes").addEventListener("input", onEditorChange);
+  $("panes").addEventListener("input", e => { if (e.target.closest && e.target.closest("[data-pickfor]")) return; onEditorChange(); });   // picker chips are handled by their own change listener
   $("panes").addEventListener("change", e => {
     if (e.target.id === "f_branch") buildCompanyControls(true);
     onEditorChange();
@@ -775,6 +814,7 @@ function previewSettings() {
 }
 
 function onEditorChange() {
+  renderSocialPick("c_social_show");
   const c = formCompany();
   FIELDS.forEach(f => $("cu_" + f.key).classList.toggle("hidden", c[f.key] === ""));
   TABS.forEach(([id]) => document.querySelector(`#rail button[data-pane="${id}"]`).classList.toggle("has-custom", FIELDS.some(f => f.tab === id && c[f.key] !== "")));
@@ -837,7 +877,23 @@ function newForm() {
   $("formTitle").textContent = "New signature";
   $("editInfo").textContent = "Fill in the details, then save and email it to the person.";
   $("btnSend").textContent = "Save and email";
+  $("btnDup").classList.add("hidden");
   say("createMsg", ""); onEditorChange();
+}
+/* Copy everything except the personal details into a new, unsaved signature */
+function duplicatePerson(email) {
+  const src = DATA.people.find(x => x.email === email); if (!src) return;
+  editPerson(email);                                   // loads branch, layout, toggles and this person's custom company fields
+  editing = null;
+  ["name", "email", "mobile", "office", "photo"].forEach(k => ($("f_" + k).value = ""));
+  $("formTitle").textContent = "New signature (copy of " + src.name + ")";
+  $("editInfo").textContent = "Same branch, layout, style, icons and settings as " + src.name + ". Fill in the new person's name, email and phone, then save.";
+  $("btnSend").textContent = "Save and email";
+  $("btnDup").classList.add("hidden");
+  document.querySelector('#rail button[data-pane="main"]').click();
+  onEditorChange();
+  $("f_name").focus();
+  say("createMsg", "Copied from " + src.name + ".", "ok");
 }
 function editPerson(email) {
   const p = DATA.people.find(x => x.email === email); if (!p) return;
@@ -852,6 +908,7 @@ function editPerson(email) {
   $("formTitle").textContent = p.name;
   $("editInfo").innerHTML = `${esc(p.branch)} branch. Last emailed ${esc(fmtDate(p.lastSent))}.` + (p.link ? ` <a href="${esc(p.link)}" target="_blank" rel="noopener">Download link</a>` : "");
   $("btnSend").textContent = "Save and email update";
+  $("btnDup").classList.remove("hidden");
   say("createMsg", ""); onEditorChange(); showPage("create");
 }
 
@@ -1279,6 +1336,7 @@ function renderPeople() {
       <td>${inactive ? '<span class="pill">Inactive</span>' : p.lastSent ? `<span class="pill ok">${esc(fmtDate(p.lastSent))}</span>` : '<span class="pill">Not sent</span>'}${p.link ? ` <a class="sub" href="${esc(p.link)}" target="_blank" rel="noopener">file</a>` : ""}</td>
       <td style="white-space:nowrap;text-align:right">
         <button type="button" class="btn sm" data-act="edit" data-email="${esc(p.email)}">Edit</button>
+        <button type="button" class="btn sm" data-act="dup" data-email="${esc(p.email)}" title="New signature with the same layout and settings">Duplicate</button>
         ${inactive ? "" : `<button type="button" class="btn sm" data-act="resend" data-email="${esc(p.email)}">Email</button>`}
         <button type="button" class="btn sm" data-act="${inactive ? "activate" : "deactivate"}" data-email="${esc(p.email)}">${inactive ? "Reactivate" : "Deactivate"}</button>
       </td></tr>`;
@@ -1286,6 +1344,7 @@ function renderPeople() {
 }
 async function peopleAction(act, email, btn) {
   if (act === "edit") return editPerson(email);
+  if (act === "dup") return duplicatePerson(email);
   busy(btn, true);
   try {
     if (act === "resend") {
@@ -1339,6 +1398,7 @@ function renderFieldInfo() {
   $("fCurrent").textContent = (f.type === "select" ? (f.options.find(o => o[0] === cur) || [cur, cur])[1] : cur) || "(empty)";
   const prev = $("fv") ? $("fv").value : "";
   $("fValueWrap").innerHTML = fieldControl(f, "fv", f.type === "color" ? (DATA.settings[key] || "") : undefined);
+  if (f.type === "socialpick") renderSocialPick("fv");
   if (f.type !== "select") $("fv").value = prev;
   syncPickers($("fValueWrap"));
   const ovr = DATA.overrides.filter(o => o.field === key);
@@ -1412,6 +1472,7 @@ $("btnDemo").addEventListener("click", () => { DEMO_MODE = true; DATA = JSON.par
 $("btnSend").addEventListener("click", e => saveFromForm(true, e.currentTarget));
 $("btnSaveOnly").addEventListener("click", e => saveFromForm(false, e.currentTarget));
 $("btnNew").addEventListener("click", newForm);
+$("btnDup").addEventListener("click", () => editing && duplicatePerson(editing.email));
 $("btnTest").addEventListener("click", e => sendTest(e.currentTarget));
 document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
   previewWidth = b.dataset.w;
