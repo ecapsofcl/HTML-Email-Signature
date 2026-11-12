@@ -265,7 +265,8 @@ var SigTemplates = (function () {
   function contactTable(p, s, dflt, labelColor, bold, subset) {
     var m = LABELMODE || dflt, rows = subset || contactRows(p, s);
     return tbl(rows.map(function (r) {
-      var lab = m === 'none' ? '' : '<td valign="top" style="' + txt(12, 18, labelColor || MUTE, 'padding:0 8px 0 0;white-space:nowrap;' + (bold ? 'font-weight:bold;' : '')) + '">' + (m === 'letters' ? r[1] : r[0] + ':') + '</td>';
+      var lw = m === 'letters' ? 18 : 52;   // fixed label column: Mobile / Office / Email / Web values all start at the same place
+      var lab = m === 'none' ? '' : '<td width="' + lw + '" valign="top" style="' + txt(12, 18, labelColor || MUTE, 'width:' + lw + 'px;min-width:' + lw + 'px;padding:0;white-space:nowrap;' + (bold ? 'font-weight:bold;' : '')) + '">' + (m === 'letters' ? r[1] : r[0] + ':') + '</td>';
       return '<tr>' + lab + '<td valign="top" style="' + txt(12, 18, INK) + '">' + r[2] + '</td></tr>';
     }).join(''));
   }
@@ -522,7 +523,8 @@ var SigTemplates = (function () {
     locations: { label: 'Office locations', min: 9, max: 14,  def: 10,  unit: 'px text', text: true, color: 'label' },
     address:   { label: 'Address',         min: 9,  max: 15,  def: 11,  unit: 'px text', text: true, color: 'label' },
     social:    { label: 'Social icons',    min: 14, max: 40,  def: 20,  unit: 'px' },
-    divider:   { label: 'Line',            min: 16, max: 600, def: 60,  unit: 'px long (0 = full width)', color: 'accent' },
+    divider:   { label: 'Horizontal line', min: 16, max: 600, def: 60,  unit: 'px long (0 = full width)', color: 'accent' },
+    vline:     { label: 'Vertical line',   min: 10, max: 300, def: 80,  unit: 'px tall', color: 'accent' },
     spacer:    { label: 'Space',           min: 2,  max: 60,  def: 10,  unit: 'px tall' },
     text:      { label: 'Custom text',     min: 9,  max: 24,  def: 12,  unit: 'px text', text: true, color: 'text' },
     tagline:   { label: 'Tagline',         min: 10, max: 18,  def: 12,  unit: 'px text', text: true, color: 'label', italic: true },
@@ -543,6 +545,7 @@ var SigTemplates = (function () {
   }
   function blockRow(p, s, o, c, b, align, colW) {
     colW = colW || SW;
+    if (['left', 'center', 'right'].indexOf(b.align) >= 0) align = b.align;   // block's own alignment wins over the column
     var def = BLOCKS[b.type]; if (!def) return '';
     var sz = b.type === 'banner' || (b.type === 'divider' && +b.size === 0) ? Math.round(clampN(b.size, 0, 600, 0)) : Math.round(clampN(b.size, def.min, def.max, def.def));
     var gap = Math.round(clampN(b.gap, 0, 40, b.type === 'spacer' ? 0 : 4));
@@ -576,9 +579,9 @@ var SigTemplates = (function () {
         var val = row[2];
         if (b.color) val = val.replace(/color:[^;"]+;/, 'color:' + colorOf(b.color, c) + ';');
         var lc = colorOf(b.labelColor || 'label', c), lh2 = Math.round(sz * 1.5);
-        var lw = b.lw == null ? (mode === 'letters' ? 18 : 58) : Math.round(clampN(b.lw, 0, 140, 58));
+        var lw = b.lw == null ? (mode === 'letters' ? 18 : 52) : Math.round(clampN(b.lw, 0, 140, 52));
         if (lab && lw > 0 && align === 'left') {   // fixed label column: values line up when these blocks are stacked
-          return '<tr><td style="padding:0 0 ' + gap + 'px 0;">' + tbl('<tr><td width="' + lw + '" valign="top" style="' + txt(sz, lh2, lc, 'width:' + lw + 'px;white-space:nowrap;' + (b.boldLabel ? 'font-weight:bold;' : '')) + '">' + lab + '</td>' +
+          return '<tr><td style="padding:0 0 ' + gap + 'px 0;">' + tbl('<tr><td width="' + lw + '" valign="top" style="' + txt(sz, lh2, lc, 'width:' + lw + 'px;min-width:' + lw + 'px;max-width:' + lw + 'px;white-space:nowrap;' + (b.boldLabel ? 'font-weight:bold;' : '')) + '">' + lab + '</td>' +
             '<td valign="top" style="' + txt(sz, lh2, INK) + '">' + val + '</td></tr>') + '</td></tr>';
         }
         return tdOpen(txt(sz, lh2, INK)) + (lab ? '<span style="color:' + lc + ';' + (b.boldLabel ? 'font-weight:bold;' : '') + '">' + lab + '</span>&nbsp;' : '') + val + '</td></tr>';
@@ -597,6 +600,10 @@ var SigTemplates = (function () {
         if (!o.social) return '';
         var ic = socialIcons(Object.assign({}, s, { icon_size: String(sz) }), sz);
         return ic ? tdOpen() + wrapAlign(ic, align) + '</td></tr>' : '';
+      }
+      case 'vline': {
+        var th = Math.round(clampN(b.thick, 1, 8, 2)), vc = colorOf(b.color || 'accent', c);
+        return tdOpen() + wrapAlign(tbl('<tr><td width="' + th + '" height="' + sz + '" bgcolor="' + vc + '" style="width:' + th + 'px;height:' + sz + 'px;background-color:' + vc + ';font-size:1px;line-height:1px;mso-line-height-rule:exactly;">&nbsp;</td></tr>'), align) + '</td></tr>';
       }
       case 'divider': return tdOpen() + wrapAlign(hline(colorOf(b.color || 'accent', c), sz > 0 ? Math.min(sz, colW) : colW, Math.round(clampN(b.thick, 1, 8, 2))), align) + '</td></tr>';
       case 'button': {
