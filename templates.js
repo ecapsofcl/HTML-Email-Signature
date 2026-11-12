@@ -16,7 +16,7 @@ var SigTemplates = (function () {
   // Set at the start of every render() from Style settings
   var FONT = 'font-family:' + DEFAULT_FONT + ';';
   var INK = '#212121', MUTE = '#6b6b6b', LINK = '#477ccc';
-  var LABELMODE = '', SEPMODE = '', ICONDATA = null;
+  var LABELMODE = '', SEPMODE = '', ICONDATA = null, COLON = 'aligned';
   var MAX_W = 600, SW = 600;   // 600px = widest size every email program shows without scrolling
 
   var TABS = [['main', 'Details'], ['social', 'Social links'], ['icons', 'Icon design'], ['style', 'Layout & style'],
@@ -114,7 +114,8 @@ var SigTemplates = (function () {
     { key: 'secondary_color',  label: 'Label colour',            tab: 'style', type: 'color' },
     { key: 'link_color',       label: 'Link colour',             tab: 'style', type: 'color' },
     { key: 'separator',        label: 'Separators',              tab: 'style', type: 'select', options: [['/', 'Slash  /'], ['|', 'Bar  |'], ['none', 'None']] },
-    { key: 'phone_labels',     label: 'Contact labels',          tab: 'style', type: 'select', options: [['text', 'Words (Mobile:)'], ['letters', 'Letters (M)'], ['none', 'None']] },
+    { key: 'phone_labels',     label: 'Contact labels',          tab: 'style', type: 'select', options: [['text', 'Words (Mobile)'], ['letters', 'Letters (M)'], ['none', 'None']] },
+    { key: 'label_colon',      label: 'Colon position',          tab: 'style', type: 'select', options: [['aligned', 'Lined up   Mobile  :'], ['after', 'After the word   Mobile:']] },
     { key: 'sig_width',        label: 'Signature width',         tab: 'style', type: 'select', options: [['600', '600 px (maximum, recommended)'], ['560', '560 px'], ['520', '520 px'], ['480', '480 px']] },
     { key: 'logo_width',       label: 'Logo width (px)',         tab: 'style', type: 'number' },
 
@@ -230,15 +231,18 @@ var SigTemplates = (function () {
     if (own && !/amazonaws\.com/.test(own)) return own.replace(/\/?$/, '/');
     return assetBase(s) + 'icons/' + iconSetKey(s) + '/';
   }
-  function socialIcons(s, size) {
-    size = parseInt(s.icon_size, 10) || size;
-    var gap = parseInt(s.icon_gap, 10); if (isNaN(gap)) gap = 6;
+  function socialList(s) {
     var show = String(s.social_show || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-    var base = iconBase(s), list = SOCIAL.filter(function (n) {
+    return SOCIAL.filter(function (n) {
       if (!s[n[0]]) return false;                                        // no link, no icon
       if (!show.length || show.indexOf('all') >= 0) return true;         // nothing chosen = every network with a link
       return show.indexOf(n[0]) >= 0;                                    // only the ticked ones ('none' matches nothing)
     });
+  }
+  function socialIcons(s, size) {
+    size = parseInt(s.icon_size, 10) || size;
+    var gap = parseInt(s.icon_gap, 10); if (isNaN(gap)) gap = 6;
+    var base = iconBase(s), list = socialList(s);
     if (!list.length) return '';
     var cells = list.map(function (n, i) {
       var src = (ICONDATA && ICONDATA[n[0]]) || base + n[0] + '.png';
@@ -262,11 +266,24 @@ var SigTemplates = (function () {
     return rows;
   }
   /** Two-column table: labels line up exactly in Gmail, Outlook and Apple Mail */
+  /** Label cell(s) for one contact row.
+      Lined up:  | Mobile | : | value      (colons form one straight column)
+      After:     | Mobile:    | value                                          */
+  function labelCells(row, mode, size, lh, color, bold, lw) {
+    if (mode === 'none') return '';
+    var base = 'white-space:nowrap;' + (bold ? 'font-weight:bold;' : '');
+    var cell = function (w, inner, extra) {
+      return '<td width="' + w + '" valign="top" style="' + txt(size, lh, color, 'width:' + w + 'px;min-width:' + w + 'px;max-width:' + w + 'px;padding:0;' + base + (extra || '')) + '">' + inner + '</td>';
+    };
+    if (mode === 'letters') return cell(lw || 18, row[1]);
+    if (COLON === 'after') return cell(lw || 58, row[0] + ':');
+    var cw = Math.round(size * 0.9) + 4;   // colon column
+    return cell(lw || Math.round(size * 4.4), row[0]) + cell(cw, ':', 'text-align:left;');
+  }
   function contactTable(p, s, dflt, labelColor, bold, subset) {
     var m = LABELMODE || dflt, rows = subset || contactRows(p, s);
     return tbl(rows.map(function (r) {
-      var lw = m === 'letters' ? 18 : 52;   // fixed label column: Mobile / Office / Email / Web values all start at the same place
-      var lab = m === 'none' ? '' : '<td width="' + lw + '" valign="top" style="' + txt(12, 18, labelColor || MUTE, 'width:' + lw + 'px;min-width:' + lw + 'px;padding:0;white-space:nowrap;' + (bold ? 'font-weight:bold;' : '')) + '">' + (m === 'letters' ? r[1] : r[0] + ':') + '</td>';
+      var lab = labelCells(r, m, 12, 18, labelColor || MUTE, bold);   // fixed label column: every value starts at the same place
       return '<tr>' + lab + '<td valign="top" style="' + txt(12, 18, INK) + '">' + r[2] + '</td></tr>';
     }).join(''));
   }
@@ -579,11 +596,12 @@ var SigTemplates = (function () {
         var val = row[2];
         if (b.color) val = val.replace(/color:[^;"]+;/, 'color:' + colorOf(b.color, c) + ';');
         var lc = colorOf(b.labelColor || 'label', c), lh2 = Math.round(sz * 1.5);
-        var lw = b.lw == null ? (mode === 'letters' ? 18 : 52) : Math.round(clampN(b.lw, 0, 140, 52));
-        if (lab && lw > 0 && align === 'left') {   // fixed label column: values line up when these blocks are stacked
-          return '<tr><td style="padding:0 0 ' + gap + 'px 0;">' + tbl('<tr><td width="' + lw + '" valign="top" style="' + txt(sz, lh2, lc, 'width:' + lw + 'px;min-width:' + lw + 'px;max-width:' + lw + 'px;white-space:nowrap;' + (b.boldLabel ? 'font-weight:bold;' : '')) + '">' + lab + '</td>' +
+        var lw = b.lw == null ? 0 : Math.round(clampN(b.lw, 0, 140, 0));   // 0 = automatic width
+        if (lab && align === 'left') {   // fixed label column: values (and colons) line up when these blocks are stacked
+          return '<tr><td style="padding:0 0 ' + gap + 'px 0;">' + tbl('<tr>' + labelCells(row, mode, sz, lh2, lc, b.boldLabel, lw) +
             '<td valign="top" style="' + txt(sz, lh2, INK) + '">' + val + '</td></tr>') + '</td></tr>';
         }
+        if (lab && mode === 'text' && COLON === 'aligned') lab = row[0] + ' :';
         return tdOpen(txt(sz, lh2, INK)) + (lab ? '<span style="color:' + lc + ';' + (b.boldLabel ? 'font-weight:bold;' : '') + '">' + lab + '</span>&nbsp;' : '') + val + '</td></tr>';
       }
       case 'contacts': {
@@ -620,15 +638,43 @@ var SigTemplates = (function () {
     return (d.rows || []).some(function (r) { return (r.cols || []).some(function (c) { return (c.blocks || []).some(function (b) { return b.type === type; }); }); });
   }
   function designWidth(d) { return Math.round(clampN(d && d.width, 360, MAX_W, SW)); }
+  /** Natural width of a column whose blocks all have a known size (logo, photo, lines, icons, space). 0 = unknown (has text). */
+  function naturalWidth(col, s) {
+    var max = 0, known = true;
+    (col.blocks || []).forEach(function (b) {
+      var def = BLOCKS[b.type] || {}, sz = +b.size || def.def || 0, w;
+      if (b.type === 'logo' || b.type === 'photo') w = sz;
+      else if (b.type === 'vline') w = Math.round(clampN(b.thick, 1, 8, 2));
+      else if (b.type === 'spacer') w = 0;
+      else if (b.type === 'divider' || b.type === 'banner') { if (+b.size > 0) w = +b.size; else w = 0; }
+      else if (b.type === 'social') {
+        var n = socialList(s).length, gap = parseInt(s.icon_gap, 10); if (isNaN(gap)) gap = 6;
+        w = n ? n * sz + (n - 1) * gap : 0;
+      } else { known = false; w = 0; }
+      if (w > max) max = w;
+    });
+    return known ? Math.max(2, max) + 2 * Math.round(clampN(col.pad, 0, 40, 0)) : 0;
+  }
+  /** Exact pixel width of every column in a row (used by the email and by the studio canvas) */
+  function colWidths(r, W, s) {
+    var cols = (r.cols || []).filter(Boolean);
+    var divW = r.divider ? 2 : 0, divGap = r.divider ? 14 : 0, rpad = Math.round(clampN(r.pad, 0, 30, 0));
+    var avail = W - 2 * rpad - (cols.length - 1) * (divW + 2 * divGap);
+    var nat = cols.map(function (c) { return c.fit ? naturalWidth(c, s) : 0; });
+    var fitPx = nat.reduce(function (a, x) { return a + x; }, 0);
+    var sum = cols.reduce(function (a, c, i) { return a + (nat[i] ? 0 : clampN(c.w, 1, 100, 50)); }, 0);
+    var rest = Math.max(0, avail - fitPx);
+    var px = cols.map(function (c, i) { return nat[i] || (sum ? Math.max(4, Math.floor(rest * clampN(c.w, 1, 100, 50) / sum)) : 0); });
+    var used = px.reduce(function (a, x) { return a + x; }, 0);
+    return { px: px, avail: avail, filler: Math.max(0, avail - used), divW: divW, divGap: divGap, rpad: rpad };
+  }
   function renderDesign(p, s, o, c, d) {
     var W = designWidth(d);
     var rows = (d.rows || []).map(function (r) {
       var cols = (r.cols || []).filter(Boolean); if (!cols.length) return '';
-      var divW = r.divider ? 2 : 0, divGap = r.divider ? 14 : 0, rpad = Math.round(clampN(r.pad, 0, 30, 0));
-      var avail = W - 2 * rpad - (cols.length - 1) * (divW + 2 * divGap);
-      var sum = cols.reduce(function (a, x) { return a + clampN(x.w, 5, 100, 50); }, 0);
+      var cw = colWidths(r, W, s), divW = cw.divW, divGap = cw.divGap, rpad = cw.rpad;
       var cells = cols.map(function (col, i) {
-        var w = Math.max(24, Math.floor(avail * clampN(col.w, 5, 100, 50) / sum));
+        var w = cw.px[i];
         var al = ['left', 'center', 'right'].indexOf(col.align) >= 0 ? col.align : 'left';
         var va = ['top', 'middle', 'bottom'].indexOf(col.valign) >= 0 ? col.valign : 'top';
         var pad = Math.round(clampN(col.pad, 0, 40, 0)), bg = hex(col.bg, '');
@@ -637,6 +683,7 @@ var SigTemplates = (function () {
           (inner ? tbl(inner, Math.max(20, w - 2 * pad)) : '&nbsp;') + '</td>' +
           (i < cols.length - 1 && r.divider ? spacerCell(divGap) + vline(colorOf(r.divColor || 'accent', c), divW) + spacerCell(divGap) : '');
       }).join('');
+      if (cw.filler > 0) cells += spacerCell(cw.filler);   // fit-content columns leave the rest of the row empty
       var rbg = hex(r.bg, '');
       return '<tr><td style="padding:0 0 ' + Math.round(clampN(r.gap, 0, 40, 8)) + 'px 0;">' +
         tbl('<tr><td' + (rbg ? ' bgcolor="' + rbg + '"' : '') + ' style="padding:' + rpad + 'px;' + (rbg ? 'background-color:' + rbg + ';' : '') + '">' + tbl('<tr>' + cells + '</tr>', W - 2 * rpad) + '</td></tr>', W) + '</td></tr>';
@@ -741,6 +788,7 @@ var SigTemplates = (function () {
     MUTE = hex(s.secondary_color, '#6b6b6b');
     FONT = 'font-family:' + (String(s.font_family || '').replace(/["<>;{}]/g, '').trim() || DEFAULT_FONT) + ';';
     LABELMODE = ['text', 'letters', 'none'].indexOf(lower(s.phone_labels)) >= 0 ? lower(s.phone_labels) : '';
+    COLON = lower(s.label_colon) === 'after' ? 'after' : 'aligned';
     SEPMODE = ['/', '|', 'none'].indexOf(lower(s.separator)) >= 0 ? lower(s.separator) : '';
     ICONDATA = (extra && extra.iconData) || null;
     SW = Math.round(clampN(s.sig_width, 400, MAX_W, MAX_W));
@@ -786,7 +834,7 @@ var SigTemplates = (function () {
   }
 
   return { FIELDS: FIELDS, TABS: TABS, TOGGLES: TOGGLES, TEMPLATES: TEMPLATES, CATEGORIES: CATEGORIES, SOCIAL: SOCIAL,
-           BLOCKS: BLOCKS, STARTERS: STARTERS, blockPreview: blockPreview, designWidth: designWidth,
+           BLOCKS: BLOCKS, STARTERS: STARTERS, blockPreview: blockPreview, designWidth: designWidth, colWidths: colWidths, naturalWidth: naturalWidth,
            resolveSettings: resolveSettings, render: render, fileHtml: fileHtml, esc: esc, flag: flag, hex: hex,
            iconDesign: iconDesign, iconSetKey: iconSetKey, imgInfo: imgInfo };
 })();
