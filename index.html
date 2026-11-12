@@ -406,7 +406,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbwUaz48nIr6vALRHoKcV2USLLVZwHnDvvsaciW5cRGM81Fwj6k4sEsBwU-uMA9JxXUm/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbyPwjozcXvo6xZRhA_SgpZvH_XnQdeu88zhYzt_S3ia3noA0RF_qz3AhubdaqHTsWcA/exec" };
 
 const DEMO = {
   settings: {
@@ -1074,11 +1074,15 @@ function dsRenderProps() {
       h += colourRow("Value colour", "color", o, "Default") + colourRow("Label colour", "labelColor", o, "Default") +
         segRow("Label", "labels", o, [["", "Default"], ["text", d.contact + ":"], ["letters", d.contact[0]], ["none", "None"]]) +
         `<div class="prow"><label class="check"><input type="checkbox" data-bool="boldLabel" ${o.boldLabel ? "checked" : ""}> Bold label</label></div>` +
-        rangeRow("Label width (keeps values lined up)", "lw", Object.assign({ lw: o.labels === "letters" ? 18 : 58 }, o), 0, 140, 1, "px");
+        rangeRow("Label width (keeps values lined up)", "lw", Object.assign({ lw: o.labels === "letters" ? 18 : 52 }, o), 0, 140, 1, "px") +
+        `<div class="hint">Keep the same label width on Mobile, Office, Email and Website so their values start in one straight line.</div>`;
     }
     if (o.type === "contacts") h += segRow("Arrange", "style", o, [["list", "List"], ["inline", "One line"]]) + segRow("Labels", "labels", o, [["", "Default"], ["text", "Words"], ["letters", "Letters"], ["none", "None"]]) +
       (o.style === "inline" ? segRow("Separator", "sep", o, [["", "Default"], ["|", "|"], ["/", "/"], ["none", "Space"]]) : "");
     if (o.type === "photo") h += segRow("Shape", "shape", o, [["round", "Round"], ["square", "Rounded square"]]);
+    if (o.type !== "spacer") h += segRow("Alignment", "align", o, [["", "Column"], ["left", "Left"], ["center", "Centre"], ["right", "Right"]]);
+    if (o.type === "vline") h += colourRow("Colour", "color", o) + rangeRow("Thickness", "thick", Object.assign({ thick: 2 }, o), 1, 8, 1, "px") +
+      `<div class="hint">Drag the corner handle up or down to change the height. For a line running the full height between two columns, use Row settings &gt; "Vertical line between columns".</div>`;
     if (o.type === "divider") h += rangeRow("Thickness", "thick", Object.assign({ thick: 2 }, o), 1, 8, 1, "px");
     if (o.type !== "spacer") h += rangeRow("Space below", "gap", Object.assign({ gap: 4 }, o), 0, 30, 1, "px");
     if (["tagline", "button"].includes(o.type)) h += `<div class="hint">The ${o.type === "tagline" ? "tagline text" : "button text and link"} come from the Extras section.</div>`;
@@ -1201,10 +1205,10 @@ function dsWire() {
     } else {
       const blk = DS.rows[+h.dataset.r].cols[+h.dataset.c].blocks[+h.dataset.b], d = B[blk.type];
       const s0 = +blk.size || d.def || Math.round(h.parentElement.getBoundingClientRect().width);
-      const perPx = ["logo", "photo", "divider", "banner"].includes(blk.type) ? 1 : blk.type === "spacer" ? 0.5 : blk.type === "social" ? 0.15 : 0.08;
+      const perPx = ["logo", "photo", "divider", "banner", "vline"].includes(blk.type) ? 1 : blk.type === "spacer" ? 0.5 : blk.type === "social" ? 0.15 : 0.08;
       const tag = document.createElement("span"); tag.className = "cv-size"; h.parentElement.appendChild(tag);
       move = ev => {
-        const dist = blk.type === "spacer" ? (ev.clientY - startY) * 2 : (ev.clientX - startX) + (ev.clientY - startY) * 0.3;
+        const dist = blk.type === "spacer" ? (ev.clientY - startY) * 2 : blk.type === "vline" ? (ev.clientY - startY) : (ev.clientX - startX) + (ev.clientY - startY) * 0.3;
         blk.size = Math.round(Math.min(d.max, Math.max(d.min, s0 + dist * perPx)));
         tag.textContent = blk.size + " " + d.unit;
         clearTimeout(move.t); move.t = setTimeout(() => dsRefreshBlock(h, blk), 30);
