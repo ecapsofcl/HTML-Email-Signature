@@ -406,7 +406,7 @@
 <script>
 /* ============ CONFIG ============
    Paste your Apps Script web app URL (ends with /exec). */
-const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbx1TOFx3PdeDkQrAdvym34FCFgxRtRWR98AbHM3gs_5UcQ5fQD54LGJpnf5zpulB4GpPw/exec" };
+const CONFIG = { API_URL: "https://script.google.com/macros/s/AKfycbyF--_KuVvdiNSLGw0QVodMVk8lSPwNtGoOaxIsfbwXvVi9C6Cpdk6H4rJ8RBUnFkc0lA/exec" };
 
 const DEMO = {
   settings: {
@@ -463,6 +463,8 @@ const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.cros
 const readFile = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
 
 async function post(body) {
+  // one ID per click: if the request is retried, the server recognises it and never sends an email twice
+  body.rid = body.rid || (Math.random().toString(36).slice(2, 12) + Date.now().toString(36));
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {           // one automatic retry for flaky networks / empty requests
     try {
@@ -488,6 +490,7 @@ async function api(action, payload) {
     }
     if (!d) d = await post({ key: KEY, action, chunkId: id, chunks: n });
   }
+  if (d.emailQuota != null && $("sideQuota")) $("sideQuota").textContent = `${d.emailQuota} emails left today`;   // live counter
   if (d.auth === false) {
     if (action === "init") { signOut(); throw new Error(d.message); }
     throw new Error("The server didn't accept the admin key for this action. Your work is still here; please try again, or sign out and back in.");
